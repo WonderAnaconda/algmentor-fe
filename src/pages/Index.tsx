@@ -87,6 +87,7 @@ const Index = () => {
             <Button 
               size="lg" 
               variant="outline"
+              onClick={() => navigate('/demo')}
               className="text-lg px-8 py-3"
             >
               View Demo Analysis
