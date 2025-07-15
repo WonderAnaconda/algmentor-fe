@@ -1,33 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthCard } from '@/components/AuthCard';
-import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function Login() {
   const [isLogin, setIsLogin] = useState(true);
   const navigate = useNavigate();
-  const { toast } = useToast();
 
-  const handleGoogleAuth = () => {
-    toast({
-      title: "Google Authentication",
-      description: "Connect to Supabase to enable Google OAuth authentication.",
-    });
-    // For now, simulate successful login
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 1000);
-  };
+  useEffect(() => {
+    // Check if user is already logged in
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session) {
+        navigate('/dashboard');
+      }
+    };
+    
+    checkAuth();
 
-  const handleEmailAuth = (email: string, password: string) => {
-    toast({
-      title: isLogin ? "Signing in..." : "Creating account...",
-      description: "Connect to Supabase to enable email authentication.",
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        navigate('/dashboard');
+      }
     });
-    // For now, simulate successful login
-    setTimeout(() => {
-      navigate('/dashboard');
-    }, 1000);
+
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  const handleSuccess = () => {
+    navigate('/dashboard');
   };
 
   return (
@@ -37,8 +39,7 @@ export default function Login() {
         <AuthCard
           isLogin={isLogin}
           onToggleMode={() => setIsLogin(!isLogin)}
-          onGoogleAuth={handleGoogleAuth}
-          onEmailAuth={handleEmailAuth}
+          onSuccess={handleSuccess}
         />
       </div>
     </div>

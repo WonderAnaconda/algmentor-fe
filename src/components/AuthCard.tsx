@@ -5,26 +5,104 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
 import { Chrome, TrendingUp } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthCardProps {
   isLogin?: boolean;
   onToggleMode?: () => void;
-  onGoogleAuth?: () => void;
-  onEmailAuth?: (email: string, password: string) => void;
+  onSuccess?: () => void;
 }
 
 export function AuthCard({ 
   isLogin = true, 
   onToggleMode, 
-  onGoogleAuth, 
-  onEmailAuth 
+  onSuccess 
 }: AuthCardProps) {
   const [email, setEmail] = React.useState('');
   const [password, setPassword] = React.useState('');
+  const [loading, setLoading] = React.useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleGoogleAuth = async () => {
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: `${window.location.origin}/dashboard`
+        }
+      });
+      
+      if (error) throw error;
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
-    onEmailAuth?.(email, password);
+    setLoading(true);
+    
+    try {
+      if (isLogin) {
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+        if (error) throw error;
+        
+        toast({
+          title: "Success",
+          description: "Signed in successfully!",
+        });
+        onSuccess?.();
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            emailRedirectTo: `${window.location.origin}/dashboard`,
+            data: {
+              full_name: email.split('@')[0]
+            }
+          }
+        });
+        
+        if (error) throw error;
+        
+        // Call the notify-new-user function
+        try {
+          await supabase.functions.invoke('notify-new-user', {
+            body: {
+              email,
+              full_name: email.split('@')[0]
+            }
+          });
+        } catch (notifyError) {
+          console.error('Failed to send notification email:', notifyError);
+        }
+        
+        toast({
+          title: "Account created!",
+          description: "Please check your email to confirm your account.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -56,7 +134,8 @@ export function AuthCard({
         <Button 
           variant="outline" 
           className="w-full bg-background/50 hover:bg-background/70 border-border/50"
-          onClick={onGoogleAuth}
+          onClick={handleGoogleAuth}
+          disabled={loading}
         >
           <Chrome className="mr-2 h-4 w-4" />
           Continue with Google
@@ -71,7 +150,7 @@ export function AuthCard({
           </div>
         </div>
         
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleEmailAuth} className="space-y-4">
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
