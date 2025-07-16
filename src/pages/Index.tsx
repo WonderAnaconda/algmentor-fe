@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, BarChart3, Target, Shield, Zap, Users } from 'lucide-react';
+import AuthStatus from '@/components/AuthStatus';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -55,10 +56,12 @@ const Index = () => {
                 <p className="text-xs text-muted-foreground">Performance Analytics Platform</p>
               </div>
             </div>
-            
-            <Button onClick={() => navigate('/login')} className="bg-gradient-primary shadow-glow">
-              Get Started
-            </Button>
+            <div className="flex items-center gap-4">
+              <Button onClick={() => navigate('/login')} className="bg-gradient-primary shadow-glow">
+                Get Started
+              </Button>
+              <AuthStatus />
+            </div>
           </div>
         </div>
       </nav>

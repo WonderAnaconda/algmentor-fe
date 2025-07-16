@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, TrendingUp, Upload } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import AuthStatus from '@/components/AuthStatus';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -102,6 +103,7 @@ export default function Dashboard() {
               <LogOut className="h-4 w-4" />
               Logout
             </Button>
+            <AuthStatus />
           </div>
         </div>
       </header>
