@@ -132,12 +132,12 @@ export function AuthCard({
       
       <CardContent className="space-y-6">
         <Button 
-          variant="outline" 
-          className="w-full bg-background/50 hover:bg-background/70 border-border/50"
+          type="button"
+          className="w-full flex items-center justify-center gap-2 bg-white text-black border border-gray-300 shadow-sm hover:bg-gray-100 font-medium py-2 px-4 rounded-md transition-colors duration-150"
           onClick={handleGoogleAuth}
           disabled={loading}
         >
-          <Chrome className="mr-2 h-4 w-4" />
+          <svg className="mr-2 h-5 w-5" viewBox="0 0 48 48"><g><path d="M44.5 20H24v8.5h11.7C34.7 32.9 30.1 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.5 6.5 29.6 4.5 24 4.5 12.7 4.5 3.5 13.7 3.5 25S12.7 45.5 24 45.5c10.5 0 19.5-8.5 19.5-19.5 0-1.3-.1-2.2-.3-3z" fill="#FFC107"/><path d="M6.3 14.7l7 5.1C15.1 17.1 19.2 14.5 24 14.5c3.1 0 5.9 1.1 8.1 2.9l6.4-6.4C34.5 6.5 29.6 4.5 24 4.5c-7.2 0-13.3 4.1-16.7 10.2z" fill="#FF3D00"/><path d="M24 45.5c5.9 0 10.8-1.9 14.4-5.2l-6.6-5.4c-2 1.4-4.6 2.2-7.8 2.2-6.1 0-11.3-4.1-13.2-9.6l-7 5.4C7.1 41.1 14.9 45.5 24 45.5z" fill="#4CAF50"/><path d="M44.5 20H24v8.5h11.7c-1.1 3.1-4.1 5.5-7.7 5.5-2.2 0-4.2-.7-5.7-2.1l-7 5.4C17.1 41.1 20.3 45.5 24 45.5c6.1 0 11.3-4.1 13.2-9.6l7-5.4C46.9 32.9 44.5 20 44.5 20z" fill="#1976D2"/></g></svg>
           Continue with Google
         </Button>
         

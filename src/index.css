@@ -121,3 +121,14 @@
     @apply bg-background text-foreground;
   }
 }
+
+input, select, textarea {
+  color: hsl(var(--foreground));
+  background: hsl(var(--background));
+  font-weight: 500;
+}
+
+.homepage-gradient-heading {
+  line-height: 1.15;
+  padding-bottom: 0.2em;
+}

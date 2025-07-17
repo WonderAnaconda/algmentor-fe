@@ -227,17 +227,17 @@ function analyzeCorrelations(dailyGroups: Map<string, TradeData[]>): any[] {
       if (timeDistance > 0) {
         const pnl = currTrade['PnL'] || currTrade['Profit (ticks)'] || 0;
         const volume = Math.abs(currTrade['Open volume'] || 1);
-        const win = pnl > 0 ? 1 : 0;
+          const win = pnl > 0 ? 1 : 0;
         
         correlations.push({
-          date,
+            date,
           time_distance: timeDistance,
-          pnl,
-          volume,
-          win
-        });
+            pnl,
+            volume,
+            win
+          });
+        }
       }
-    }
   });
   
   return correlations;
@@ -253,7 +253,7 @@ function analyzeCumulativePnlByTime(dailyGroups: Map<string, TradeData[]>): any[
     // Sort by open time
     dayTrades.sort((a, b) => new Date(a['Open time']).getTime() - new Date(b['Open time']).getTime());
     
-    let cumulativePnl = 0;
+      let cumulativePnl = 0;
     let peakPnl = 0;
     let peakTime = '';
     let tradesToPeak = 0;
@@ -262,8 +262,8 @@ function analyzeCumulativePnlByTime(dailyGroups: Map<string, TradeData[]>): any[
       const pnl = trade['PnL'] || trade['Profit (ticks)'] || 0;
       cumulativePnl += pnl;
       
-      if (cumulativePnl > peakPnl) {
-        peakPnl = cumulativePnl;
+        if (cumulativePnl > peakPnl) {
+          peakPnl = cumulativePnl;
         peakTime = trade['Open time'];
         tradesToPeak = index + 1;
       }
@@ -333,7 +333,7 @@ function analyzeOptimalDrawdown(dailyGroups: Map<string, TradeData[]>): any[] {
     });
     
     results.push({
-      date,
+          date,
       optimal_drawdown_pct: bestDrawdown,
       final_pnl_with_optimal: bestFinalPnl,
       unlimited_final_pnl: cumulativePnl,
@@ -592,8 +592,8 @@ const handler = async (req: Request): Promise<Response> => {
 
   } catch (error: any) {
     console.error("Error in process-excel function:", error);
-    return new Response(
-      JSON.stringify({ 
+  return new Response(
+    JSON.stringify({
         error: error.message,
         details: "Please ensure your file contains the required columns: 'Open time', and optionally 'PnL', 'Profit (ticks)', 'Open volume'"
       }),

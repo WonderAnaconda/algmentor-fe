@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FileUpload } from '@/components/ui/file-upload';
 import { TradingDashboard } from '@/components/TradingDashboard';
+import { AnalysisResults } from '@/components/AnalysisResults';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, TrendingUp, Upload } from 'lucide-react';
+import { LogOut, TrendingUp, Upload, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AuthStatus from '@/components/AuthStatus';
+import { supabase } from '@/integrations/supabase/client';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -51,32 +53,85 @@ export default function Dashboard() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [hasUploadedFile, setHasUploadedFile] = useState(false);
   const [showResults, setShowResults] = useState(false);
+  const [analysisData, setAnalysisData] = useState<any>(null);
+  const [analysisError, setAnalysisError] = useState<string | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // --- AUTH CHECK ---
+  useEffect(() => {
+    let isMounted = true;
+    supabase.auth.getUser().then(({ data }) => {
+      if (isMounted && !data.user) {
+        navigate('/login', { replace: true });
+      }
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (isMounted && !session) {
+        navigate('/login', { replace: true });
+      }
+    });
+    return () => {
+      isMounted = false;
+      listener?.subscription.unsubscribe();
+    };
+  }, [navigate]);
+  // --- END AUTH CHECK ---
 
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
     setUploadProgress(0);
     setHasUploadedFile(true);
+    setAnalysisError(null);
+    setAnalysisData(null);
 
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 95) {
-          clearInterval(interval);
-          setTimeout(() => {
-            setIsUploading(false);
-            setShowResults(true);
-            toast({
-              title: "Analysis Complete!",
-              description: "Your trading performance has been analyzed. Check your improvement suggestions below.",
-            });
-          }, 500);
-          return 100;
+    try {
+      // Read the Excel file
+      const arrayBuffer = await file.arrayBuffer();
+      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+
+      // Update progress
+      setUploadProgress(25);
+
+      // Call the Edge Function
+      const { data, error } = await supabase.functions.invoke('trade-analysis', {
+        body: {
+          file_data: base64Data,
+          file_name: file.name,
+          sheet_name: 'Journal' // The expected sheet name from the Excel file
         }
-        return prev + Math.random() * 15;
       });
-    }, 200);
+
+      setUploadProgress(75);
+
+      if (error) {
+        throw new Error(error.message || 'Failed to analyze trading data');
+      }
+
+      if (!data || !data.analysis) {
+        throw new Error('No analysis data received');
+      }
+
+      setAnalysisData(data.analysis);
+      setShowResults(true);
+      setUploadProgress(100);
+
+      toast({
+        title: "Analysis Complete!",
+        description: "Your trading performance has been analyzed. Check your improvement suggestions below.",
+      });
+
+    } catch (error: any) {
+      console.error('Analysis error:', error);
+      setAnalysisError(error.message || 'Failed to analyze trading data');
+      toast({
+        title: "Analysis Failed",
+        description: error.message || 'Failed to analyze trading data',
+        variant: "destructive",
+      });
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleLogout = () => {
@@ -98,11 +153,7 @@ export default function Dashboard() {
                 <p className="text-xs text-muted-foreground">Performance Dashboard</p>
               </div>
             </div>
-            
-            <Button variant="ghost" onClick={handleLogout} className="gap-2">
-              <LogOut className="h-4 w-4" />
-              Logout
-            </Button>
+            {/* Remove the middle Logout button, keep only AuthStatus */}
             <AuthStatus />
           </div>
         </div>
@@ -141,10 +192,40 @@ export default function Dashboard() {
           )}
 
           {/* Results Section */}
-          {(showResults || hasUploadedFile) && (
+          {analysisError && (
+            <Card className="max-w-2xl mx-auto bg-gradient-card shadow-card border-loss/20">
+              <CardContent className="p-6">
+                <div className="text-center space-y-4">
+                  <div className="w-16 h-16 bg-loss/10 rounded-full flex items-center justify-center mx-auto">
+                    <AlertCircle className="h-8 w-8 text-loss" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-semibold text-loss mb-2">Analysis Failed</h3>
+                    <p className="text-muted-foreground">{analysisError}</p>
+                  </div>
+                  <Button 
+                    onClick={() => {
+                      setAnalysisError(null);
+                      setHasUploadedFile(false);
+                      setShowResults(false);
+                    }}
+                    variant="outline"
+                  >
+                    Try Again
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {showResults && analysisData && (
+            <AnalysisResults analysis={analysisData} />
+          )}
+
+          {hasUploadedFile && !showResults && !analysisError && (
             <TradingDashboard
-              metrics={showResults ? mockMetrics : undefined}
-              suggestions={showResults ? mockSuggestions : undefined}
+              metrics={undefined}
+              suggestions={undefined}
               isLoading={isUploading}
             />
           )}

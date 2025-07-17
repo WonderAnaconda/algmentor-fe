@@ -4,9 +4,19 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, BarChart3, Target, Shield, Zap, Users } from 'lucide-react';
 import AuthStatus from '@/components/AuthStatus';
+import { supabase } from '@/integrations/supabase/client';
 
 const Index = () => {
   const navigate = useNavigate();
+
+  const handleStart = async () => {
+    const { data } = await supabase.auth.getUser();
+    if (data.user) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
 
   const features = [
     {
@@ -57,7 +67,7 @@ const Index = () => {
               </div>
             </div>
             <div className="flex items-center gap-4">
-              <Button onClick={() => navigate('/login')} className="bg-gradient-primary shadow-glow">
+              <Button onClick={handleStart} className="bg-gradient-primary shadow-glow">
                 Get Started
               </Button>
               <AuthStatus />
@@ -70,7 +80,7 @@ const Index = () => {
       <section className="py-20 px-6">
         <div className="container mx-auto text-center space-y-8">
           <div className="space-y-4">
-            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent">
+            <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent homepage-gradient-heading">
               Optimize Your Trading Performance
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
@@ -82,7 +92,7 @@ const Index = () => {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Button 
               size="lg" 
-              onClick={() => navigate('/login')}
+              onClick={handleStart}
               className="bg-gradient-primary hover:opacity-90 shadow-glow text-lg px-8 py-3"
             >
               Start Analyzing Your Trades
