@@ -1,6 +1,6 @@
 // Test script for the process-excel Edge Function
 const SUPABASE_URL = 'https://ypmulzxgzalqxlvwazvc.supabase.co';
-const SUPABASE_ANON_KEY = 'your-anon-key-here'; // Replace with your actual anon key
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InlwbXVsenhnemFscXhsdndhenZjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2MDA0NDUsImV4cCI6MjA2ODE3NjQ0NX0.7fqCTwd5s4HbN1-JplDjlOZXJm2KBTL8VD5y_akpWnI';
 
 // Sample CSV data for testing
 const sampleCSV = `Open time,PnL,Open volume
@@ -75,3 +75,18 @@ if (typeof module !== 'undefined' && module.exports) {
 if (typeof window !== 'undefined') {
   console.log('🌐 Browser environment detected. Run runTest() to test the Edge Function.');
 } 
+
+// Patch: Always run test in Node.js, print all errors, warn if anon key is not set, and catch unhandled rejections
+if (SUPABASE_ANON_KEY === 'your-anon-key-here' || !SUPABASE_ANON_KEY) {
+  console.error('❌ Supabase anon key is not set. Please set SUPABASE_ANON_KEY in test_edge_function.js.');
+  process.exit(1);
+}
+
+(async () => {
+  try {
+    await testEdgeFunction();
+    console.log('--- Test script completed ---');
+  } catch (err) {
+    console.error('❌ Unhandled error:', err);
+  }
+})(); 

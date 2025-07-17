@@ -1,0 +1,121 @@
+{
+    "optimal_break_between_trades": {
+        "minutes": 10.75,
+        "seconds": "645",
+        "robust_range_minutes": [
+            10.75,
+            10.75
+        ],
+        "explanation": "Based on cooldown analysis, waiting 10.8 minutes between trades maximizes cumulative P&L",
+        "pnl_improvement": 20945,
+        "robustness": "Cooldown periods between 10.8-10.8 minutes achieve >95% of maximum P&L",
+        "confidence": "High - based on systematic analysis across all cooldown periods"
+    },
+    "optimal_intraday_drawdown": {
+        "percentage": 5.0,
+        "mean_percentage": 9.666666666666666,
+        "std_percentage": 12.840906856172147,
+        "confidence_interval_95": [
+            4.871793245032827,
+            14.461540088300506
+        ],
+        "sample_size": 30,
+        "consistency_rate": 0.8666666666666667,
+        "explanation": "Stop trading when daily drawdown reaches 5.0% of the day's peak P&L",
+        "confidence": "Medium - 86.7% of days had optimal drawdown within 5% of recommendation",
+        "robustness": "95% confidence interval: 4.9%-14.5%"
+    },
+    "optimal_max_trades_per_day": {
+        "median_trades_to_peak": 6.5,
+        "mean_trades_to_peak": 15.1,
+        "std_trades_to_peak": 28.4175415310098,
+        "confidence_interval_95": [
+            4.48871560074277,
+            25.71128439925723
+        ],
+        "current_avg_trades_per_day": 39.34375,
+        "sample_size": 30,
+        "optimal_rate": 0.26666666666666666,
+        "recommendation": "Consider limiting to 6 trades per day, as this is the median number of trades needed to reach peak P&L",
+        "explanation": "Based on analysis of when cumulative P&L typically peaks during trading days",
+        "confidence": "Medium - 26.7% of days had optimal trades within 2 of recommendation",
+        "robustness": "95% confidence interval: 4.5-25.7 trades"
+    },
+    "optimal_trading_hours": {
+        "average_peak_time": "17:18",
+        "std_peak_hour": 1.6981661314125136,
+        "confidence_interval_95": [
+            "16:40",
+            "17:56"
+        ],
+        "most_common_peak_time": "15:31",
+        "sample_size": 30,
+        "consistency_rate": 0.26666666666666666,
+        "explanation": "Peak cumulative P&L typically occurs around 17:18",
+        "recommendation": "Focus trading activity in the hours leading up to the typical peak time",
+        "confidence": "Medium - 26.7% of days had peak within 1 hour of average",
+        "robustness": "95% confidence interval: 16:40 - 17:56"
+    },
+    "optimal_time_distance_range": {
+        "min_minutes": 6.0,
+        "max_minutes": 8.0,
+        "avg_pnl_in_range": 120.5,
+        "std_pnl_in_range": 234.0518698446517,
+        "sample_size": 10,
+        "confidence_interval_95": [
+            -46.93062145285569,
+            287.9306214528557
+        ],
+        "robust_ranges": [
+            [
+                6.0,
+                8.0
+            ]
+        ],
+        "explanation": "Trades with 6.0-8.0 minutes between them show the highest average P&L (among practical ranges)",
+        "recommendation": "Aim for 6.0-8.0 minute intervals between trades",
+        "confidence": "Medium - based on 10 trades in optimal range",
+        "robustness": "95% confidence interval: -46.9-287.9 P&L",
+        "note": "Analysis limited to practical time distances (0-30 minutes) for day trading"
+    },
+    "optimal_win_rate_window": {
+        "time_window": "18:28",
+        "win_rate": 100.0,
+        "avg_time_distance": 2.5566666666666666,
+        "win_rate_std": 24.552110320718928,
+        "sample_size": 1150,
+        "robust_windows_count": 110,
+        "explanation": "15-minute window centered at 18:28 shows the highest win rate",
+        "recommendation": "Focus trading activity during this time window for better win rates",
+        "confidence": "Low - based on single window analysis, 110 windows show >90% of best win rate",
+        "robustness": "Win rate standard deviation: 24.6%"
+    },
+    "volume_optimization": {
+        "volume_time_correlation": 0.03626646587564526,
+        "correlation_p_value": 0.3436041740723108,
+        "correlation_significant": "False",
+        "sample_size": 684,
+        "revenge_trading_analysis": {
+            "revenge_trades_count": 175,
+            "revenge_trades_percentage": 25.584795321637426,
+            "revenge_pnl_mean": -14.571428571428571,
+            "revenge_pnl_std": 182.4811887194217,
+            "normal_pnl_mean": -28.88015717092338,
+            "pnl_difference": 14.308728599494808,
+            "revenge_performance": "better",
+            "low_time_high_vol_percentage": 25.584795321637426,
+            "volume_threshold_75th": 1.0,
+            "time_distance_threshold_25th": 0.13333333333333333
+        },
+        "explanation": "Volume and time distance correlation: 0.0363. 25.6% of trades show potential revenge trading patterns (high volume + low time distance).",
+        "recommendation": "Address revenge trading: 25.6% of trades show high volume with low time gaps. These trades perform better than normal trades (difference: 14.3 P&L).",
+        "confidence": "Low - correlation is not statistically significant (p=0.3436)",
+        "robustness": "Based on 684 trade observations",
+        "action_items": [
+            "Implement mandatory cooldown periods after losses",
+            "Set volume limits for trades within 5 minutes of previous trade",
+            "Monitor for increasing position sizes after losses",
+            "Consider reducing position size when time between trades is low"
+        ]
+    }
+}

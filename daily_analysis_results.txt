@@ -1,0 +1,19 @@
+DAILY TRADING ANALYSIS RESULTS
+==================================================
+
+SLIDING WINDOW ANALYSIS (15-minute windows) - WIN RATE ONLY:
+Win rate vs time distance correlation: 0.0560
+
+INDIVIDUAL TRADE CORRELATION ANALYSIS:
+Win rate vs time distance: 0.0560
+P&L vs time distance: 0.0498
+Volume vs time distance: 0.0363
+
+TIME ANALYSIS:
+Average peak time: 17:18
+Average trades to peak: 15.1
+
+OPTIMAL DRAWDOWN ANALYSIS:
+Average optimal drawdown: 9.7%
+Median optimal drawdown: 5.0%
+Average P&L improvement: 1340.33
