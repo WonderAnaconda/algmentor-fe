@@ -1,6 +1,7 @@
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
 import { 
   Clock, 
   TrendingDown, 
@@ -77,7 +78,7 @@ const getConfidenceColor = (confidence: string) => {
   if (confidence.toLowerCase().includes('high')) {
     return 'bg-profit/20 text-profit-foreground border-profit/30';
   } else if (confidence.toLowerCase().includes('medium')) {
-    return 'bg-primary/20 text-primary-foreground border-primary/30';
+    return 'bg-primary/20 text-primary-foreground !text-white border-primary/30'; // Force white text everywhere
   } else {
     return 'bg-muted/20 text-muted-foreground border-muted/30';
   }
@@ -93,18 +94,25 @@ const getConfidenceIcon = (confidence: string) => {
   }
 };
 
-export function AnalysisResults({ analysis }: AnalysisResultsProps) {
+export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { onReset?: () => void }) {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
       <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
+        <h1 className="text-3xl font-bold text-primary">
           Your Trading Optimization Analysis
         </h1>
         <p className="text-muted-foreground max-w-2xl mx-auto">
           AI-powered analysis of your trading patterns with actionable optimization recommendations
         </p>
       </div>
+      {onReset && (
+        <div className="flex justify-center mt-2">
+          <Button variant="outline" onClick={onReset}>
+            Upload a Different File
+          </Button>
+        </div>
+      )}
 
       {/* Key Metrics Overview */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">

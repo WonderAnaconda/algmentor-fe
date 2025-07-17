@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { FileUpload } from '@/components/ui/file-upload';
 import { TradingDashboard } from '@/components/TradingDashboard';
 import { AnalysisResults } from '@/components/AnalysisResults';
@@ -9,6 +9,7 @@ import { LogOut, TrendingUp, Upload, AlertCircle } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AuthStatus from '@/components/AuthStatus';
 import { supabase } from '@/integrations/supabase/client';
+import * as XLSX from 'xlsx';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -86,21 +87,40 @@ export default function Dashboard() {
     setAnalysisData(null);
 
     try {
-      // Read the Excel file
-      const arrayBuffer = await file.arrayBuffer();
-      const base64Data = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+      // Get the current user
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+      if (userError || !userData?.user?.id) {
+        throw new Error('User not authenticated');
+      }
+      const user_id = userData.user.id;
 
-      // Update progress
+      let csvData = '';
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        // Read as ArrayBuffer for xlsx
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = 'Journal';
+        if (!workbook.Sheets[sheetName]) {
+          throw new Error(`Sheet '${sheetName}' not found in Excel file.`);
+        }
+        csvData = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+      } else {
+        // Assume CSV
+        csvData = await file.text();
+      }
+
       setUploadProgress(25);
 
-      // Call the Edge Function
-      const { data, error } = await supabase.functions.invoke('trade-analysis', {
+      // Call the Edge Function with correct payload
+      const { data, error } = await supabase.functions.invoke('process-excel', {
         body: {
-          file_data: base64Data,
-          file_name: file.name,
-          sheet_name: 'Journal' // The expected sheet name from the Excel file
+          user_id,
+          csv_data: csvData
         }
       });
+
+      console.log('Edge function response:', data); // Debug: print full response
 
       setUploadProgress(75);
 
@@ -144,7 +164,7 @@ export default function Dashboard() {
       <header className="border-b border-border bg-card/50 backdrop-blur">
         <div className="container mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
+            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
               <div className="p-2 rounded-lg bg-gradient-primary">
                 <TrendingUp className="h-5 w-5 text-primary-foreground" />
               </div>
@@ -152,7 +172,7 @@ export default function Dashboard() {
                 <h1 className="font-bold text-lg">TradeAnalyzer</h1>
                 <p className="text-xs text-muted-foreground">Performance Dashboard</p>
               </div>
-            </div>
+            </Link>
             {/* Remove the middle Logout button, keep only AuthStatus */}
             <AuthStatus />
           </div>
@@ -163,14 +183,16 @@ export default function Dashboard() {
       <main className="container mx-auto px-6 py-8">
         <div className="space-y-8">
           {/* Welcome Section */}
-          <div className="text-center space-y-4">
-            <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary-glow bg-clip-text text-transparent">
-              Trading Performance Analysis
-            </h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Upload your trading records to get detailed performance analysis and AI-powered improvement suggestions
-            </p>
-          </div>
+          {!showResults && (
+            <div className="text-center space-y-4">
+              <h2 className="text-3xl font-bold text-primary">
+                Trading Performance Analysis
+              </h2>
+              <p className="text-muted-foreground max-w-2xl mx-auto">
+                Upload your trading records to get detailed performance analysis and AI-powered improvement suggestions
+              </p>
+            </div>
+          )}
 
           {/* Upload Section */}
           {!showResults && (
@@ -219,7 +241,16 @@ export default function Dashboard() {
           )}
 
           {showResults && analysisData && (
-            <AnalysisResults analysis={analysisData} />
+            <AnalysisResults
+              analysis={analysisData}
+              onReset={() => {
+                setHasUploadedFile(false);
+                setAnalysisError(null);
+                setAnalysisData(null);
+                setShowResults(false);
+                setUploadProgress(0);
+              }}
+            />
           )}
 
           {hasUploadedFile && !showResults && !analysisError && (

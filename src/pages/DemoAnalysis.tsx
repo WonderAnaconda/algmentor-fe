@@ -3,9 +3,32 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { DemoAnalysis } from '@/components/DemoAnalysis';
 import { ArrowLeft, TrendingUp } from 'lucide-react';
+import AuthStatus from '@/components/AuthStatus';
+import { supabase } from '@/integrations/supabase/client';
 
 export default function DemoAnalysisPage() {
   const navigate = useNavigate();
+  const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+
+  React.useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setIsLoggedIn(!!data.user);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, []);
+
+  const handleGetAnalysis = () => {
+    if (isLoggedIn) {
+      navigate('/dashboard');
+    } else {
+      navigate('/login');
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -29,10 +52,12 @@ export default function DemoAnalysisPage() {
                 </div>
               </div>
             </div>
-            
-            <Button onClick={() => navigate('/login')} className="bg-gradient-primary shadow-glow">
-              Get Your Analysis
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button onClick={handleGetAnalysis} className="bg-gradient-primary shadow-glow">
+                Get Your Analysis
+              </Button>
+              <AuthStatus />
+            </div>
           </div>
         </div>
       </header>
