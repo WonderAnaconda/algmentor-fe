@@ -30,7 +30,7 @@ export function AuthCard({
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/dashboard`
+          redirectTo: `${window.location.origin}/algmentor-fe/dashboard`
         }
       });
       
@@ -68,7 +68,7 @@ export function AuthCard({
           email,
           password,
           options: {
-            emailRedirectTo: `${window.location.origin}/dashboard`,
+            emailRedirectTo: `${window.location.origin}/algmentor-fe/dashboard`,
             data: {
               full_name: email.split('@')[0]
             }
@@ -113,8 +113,8 @@ export function AuthCard({
             <TrendingUp className="h-6 w-6 text-primary-foreground" />
           </div>
           <div>
-            <h1 className="text-xl font-bold">TradeAnalyzer</h1>
-            <p className="text-xs text-muted-foreground">Performance Analytics</p>
+            <h1 className="text-xl font-bold">AlgMentor</h1>
+            <p className="text-xs text-muted-foreground">Trading Performance Analytics</p>
           </div>
         </div>
         <div>

@@ -47,7 +47,7 @@ export default function DemoAnalysisPage() {
                   <TrendingUp className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <h1 className="font-bold text-lg">TradeAnalyzer</h1>
+                  <h1 className="font-bold text-lg">AlgMentor</h1>
                   <p className="text-xs text-muted-foreground">Demo Analysis</p>
                 </div>
               </div>

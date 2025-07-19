@@ -62,7 +62,7 @@ const Index = () => {
                 <TrendingUp className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-bold text-xl">TradeAnalyzer</h1>
+                <h1 className="font-bold text-xl">AlgMentor</h1>
                 <p className="text-xs text-muted-foreground">Performance Analytics Platform</p>
               </div>
             </div>
@@ -162,7 +162,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-border">
         <div className="container mx-auto text-center text-muted-foreground">
-          <p>&copy; 2024 TradeAnalyzer. Built with advanced AI to help traders succeed.</p>
+          <p>&copy; 2025 AlgMentor. Built with advanced AI to help traders succeed.</p>
         </div>
       </footer>
     </div>

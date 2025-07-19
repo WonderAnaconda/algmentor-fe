@@ -56,20 +56,37 @@ export default function Dashboard() {
   const [showResults, setShowResults] = useState(false);
   const [analysisData, setAnalysisData] = useState<any>(null);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
 
   // --- AUTH CHECK ---
   useEffect(() => {
     let isMounted = true;
-    supabase.auth.getUser().then(({ data }) => {
+    const checkUser = async () => {
+      const { data } = await supabase.auth.getUser();
       if (isMounted && !data.user) {
-        navigate('/login', { replace: true });
+        // Wait a bit and try again (for OAuth redirect)
+        setTimeout(async () => {
+          const { data } = await supabase.auth.getUser();
+          if (isMounted && !data.user) {
+            setAuthChecked(true);
+            navigate('/login', { replace: true });
+          } else {
+            setAuthChecked(true);
+          }
+        }, 500);
+      } else {
+        setAuthChecked(true);
       }
-    });
+    };
+    checkUser();
     const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
       if (isMounted && !session) {
+        setAuthChecked(true);
         navigate('/login', { replace: true });
+      } else if (isMounted && session) {
+        setAuthChecked(true);
       }
     });
     return () => {
@@ -79,6 +96,14 @@ export default function Dashboard() {
   }, [navigate]);
   // --- END AUTH CHECK ---
 
+  if (!authChecked) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg text-muted-foreground">Checking authentication...</div>
+      </div>
+    );
+  }
+
   const handleFileUpload = async (file: File) => {
     setIsUploading(true);
     setUploadProgress(0);
@@ -87,52 +112,38 @@ export default function Dashboard() {
     setAnalysisData(null);
 
     try {
-      // Get the current user
-      const { data: userData, error: userError } = await supabase.auth.getUser();
-      if (userError || !userData?.user?.id) {
-        throw new Error('User not authenticated');
+      setUploadProgress(10);
+      // Prepare FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file);
+
+      setUploadProgress(30);
+
+      // POST to FastAPI endpoint
+      const apiBaseUrl = import.meta.env.VITE_API_ENDPOINT_URL;
+      if (!apiBaseUrl) {
+        throw new Error('API endpoint URL is not set in environment variables (VITE_API_ENDPOINT_URL)');
       }
-      const user_id = userData.user.id;
-
-      let csvData = '';
-      const fileName = file.name.toLowerCase();
-      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
-        // Read as ArrayBuffer for xlsx
-        const arrayBuffer = await file.arrayBuffer();
-        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
-        const sheetName = 'Journal';
-        if (!workbook.Sheets[sheetName]) {
-          throw new Error(`Sheet '${sheetName}' not found in Excel file.`);
-        }
-        csvData = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
-      } else {
-        // Assume CSV
-        csvData = await file.text();
-      }
-
-      setUploadProgress(25);
-
-      // Call the Edge Function with correct payload
-      const { data, error } = await supabase.functions.invoke('process-excel', {
-        body: {
-          user_id,
-          csv_data: csvData
-        }
+      const response = await fetch(`${apiBaseUrl}/analyze`, {
+        method: 'POST',
+        body: formData,
       });
 
-      console.log('Edge function response:', data); // Debug: print full response
+      setUploadProgress(60);
 
-      setUploadProgress(75);
-
-      if (error) {
-        throw new Error(error.message || 'Failed to analyze trading data');
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Server error: ${response.status} - ${errorText}`);
       }
 
-      if (!data || !data.analysis) {
+      const data = await response.json();
+      setUploadProgress(90);
+
+      if (!data || !data.recommendations) {
         throw new Error('No analysis data received');
       }
 
-      setAnalysisData(data.analysis);
+      setAnalysisData(data.recommendations);
       setShowResults(true);
       setUploadProgress(100);
 
@@ -140,7 +151,6 @@ export default function Dashboard() {
         title: "Analysis Complete!",
         description: "Your trading performance has been analyzed. Check your improvement suggestions below.",
       });
-
     } catch (error: any) {
       console.error('Analysis error:', error);
       setAnalysisError(error.message || 'Failed to analyze trading data');
@@ -169,8 +179,8 @@ export default function Dashboard() {
                 <TrendingUp className="h-5 w-5 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-bold text-lg">TradeAnalyzer</h1>
-                <p className="text-xs text-muted-foreground">Performance Dashboard</p>
+                <h1 className="font-bold text-lg">AlgMentor</h1>
+                <p className="text-xs text-muted-foreground">Trading Performance Dashboard</p>
               </div>
             </Link>
             {/* Remove the middle Logout button, keep only AuthStatus */}

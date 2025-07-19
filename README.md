@@ -71,3 +71,125 @@ Yes, you can!
 To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
 
 Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+
+## Hosting on GitHub Pages
+
+This project is set up for static hosting on GitHub Pages using [gh-pages](https://www.npmjs.com/package/gh-pages) and React Router's HashRouter for guaranteed SPA routing.
+
+### Steps to Deploy
+
+1. **Set your API endpoint in your local `.env` file** (not needed on GitHub, only for local build):
+   ```sh
+   VITE_API_ENDPOINT_URL=https://your-api-url
+   ```
+2. **Build and deploy:**
+   ```sh
+   npm run deploy
+   ```
+   This will:
+   - Build the app for production
+   - Copy `index.html` to `404.html` for SPA fallback
+   - Publish the `dist/` folder to the `gh-pages` branch
+
+3. **Access your site at:**
+   ```
+   https://<your-github-username>.github.io/algmentor-fe/
+   ```
+
+### Notes
+- The app uses `HashRouter`, so URLs will look like `/#/dashboard`.
+- All environment variables are injected at build time; the `.env` file is not needed on GitHub.
+- Make sure your API and Supabase allow CORS from your GitHub Pages domain.
+- If you make changes, just run `npm run deploy` again to update the site.
+
+## Step-by-Step: Hosting on GitHub Pages (with Google OAuth & Supabase)
+
+This guide will walk you through everything needed to host this Vite + React + Supabase app on GitHub Pages, including Google OAuth and correct routing.
+
+### 1. Vite Configuration
+- In `vite.config.ts`, set:
+  ```js
+  base: '/algmentor-fe/' // Use your repo name here
+  ```
+
+### 2. Use HashRouter for Routing
+- In `src/App.tsx`, use:
+  ```js
+  import { HashRouter } from 'react-router-dom';
+  // ...
+  <HashRouter>
+    {/* your routes */}
+  </HashRouter>
+  ```
+- This ensures all routes work on GitHub Pages.
+
+### 3. gh-pages Deployment
+- Install gh-pages:
+  ```sh
+  npm install --save-dev gh-pages
+  ```
+- In `package.json`, add:
+  ```json
+  "predeploy": "npm run build && npm run postbuild",
+  "deploy": "gh-pages -d dist",
+  "postbuild": "cp dist/index.html dist/404.html"
+  ```
+- Deploy with:
+  ```sh
+  npm run deploy
+  ```
+- Your site will be at: `https://<your-github-username>.github.io/algmentor-fe/`
+
+### 4. .env Usage
+- Create a `.env` file locally (not pushed to GitHub):
+  ```sh
+  VITE_API_ENDPOINT_URL=https://your-api-url
+  VITE_SUPABASE_URL=your-supabase-url
+  VITE_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+  ```
+- These are injected at build time.
+
+### 5. Google OAuth Setup
+- In the [Google Cloud Console](https://console.cloud.google.com/apis/credentials):
+  - **Authorized redirect URIs:**
+    - `http://localhost:3000/auth/v1/callback` (for local dev)
+    - `https://<your-supabase-project-ref>.supabase.co/auth/v1/callback`
+    - `https://<your-github-username>.github.io/algmentor-fe/`
+  - **Authorized JavaScript origins:**
+    - `http://localhost:3000`
+    - `https://<your-github-username>.github.io`
+
+### 6. Supabase Auth Settings
+- In the Supabase dashboard:
+  - **Site URL:**
+    - `https://<your-github-username>.github.io/algmentor-fe/`
+  - **Redirect URLs:**
+    - `https://<your-github-username>.github.io/algmentor-fe/`
+    - `https://<your-github-username>.github.io/algmentor-fe/dashboard`
+
+### 7. Code Changes for OAuth Redirects
+- In `src/components/AuthCard.tsx`, update:
+  ```js
+  redirectTo: `${window.location.origin}/algmentor-fe/dashboard`
+  emailRedirectTo: `${window.location.origin}/algmentor-fe/dashboard`
+  ```
+- This ensures users land on the dashboard after login/signup.
+
+### 8. CORS for Your API
+- If you use a custom backend (e.g., FastAPI), set CORS to allow your GitHub Pages domain:
+  ```python
+  allow_origins=[
+    "https://<your-github-username>.github.io",
+    "https://<your-github-username>.github.io/algmentor-fe"
+  ]
+  ```
+- Supabase client API does not require CORS settings.
+
+### 9. Troubleshooting
+- If you see 404s on refresh, make sure `404.html` is copied from `index.html`.
+- If OAuth redirects to the wrong path, check all `redirectTo` and Supabase/Google settings.
+- Always use the correct base path (`/algmentor-fe/`) everywhere.
+
+---
+
+**Follow these steps and you’ll have a working, production-ready static app with Google login, Supabase, and custom API support on GitHub Pages!**
