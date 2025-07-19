@@ -1,22 +1,22 @@
-# Welcome to your Lovable project
+# Welcome to your AlgMentor project
 
 ## Project info
 
-**URL**: https://lovable.dev/projects/56e218fe-7672-472f-8ed2-04797b7cd757
+**URL**: https://algmentor.dev/projects/56e218fe-7672-472f-8ed2-04797b7cd757
 
 ## How can I edit this code?
 
 There are several ways of editing your application.
 
-**Use Lovable**
+**Use AlgMentor**
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/56e218fe-7672-472f-8ed2-04797b7cd757) and start prompting.
+Simply visit the [AlgMentor Project](https://algmentor.dev/projects/56e218fe-7672-472f-8ed2-04797b7cd757) and start prompting.
 
-Changes made via Lovable will be committed automatically to this repo.
+Changes made via AlgMentor will be committed automatically to this repo.
 
 **Use your preferred IDE**
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in AlgMentor.
 
 The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
@@ -62,9 +62,9 @@ This project is built with:
 
 ## How can I deploy this project?
 
-Simply open [Lovable](https://lovable.dev/projects/56e218fe-7672-472f-8ed2-04797b7cd757) and click on Share -> Publish.
+Simply open [AlgMentor](https://algmentor.dev/projects/56e218fe-7672-472f-8ed2-04797b7cd757) and click on Share -> Publish.
 
-## Can I connect a custom domain to my Lovable project?
+## Can I connect a custom domain to my AlgMentor project?
 
 Yes, you can!
 
@@ -218,3 +218,13 @@ This app now performs all trading journal analysis **locally in your browser** u
 - The app is ready for future support of additional formats and more advanced local analysis.
 
 ---
+
+## Debug Mode (Bypass Authentication)
+
+For development or debugging, you can bypass the login requirement for the dashboard by setting the following environment variable in your `.env` file:
+
+```
+VITE_DEBUG=true
+```
+
+When `VITE_DEBUG` is set to `true`, the dashboard will be accessible without authentication. This is useful for local development and testing. **Do not use this in production.**

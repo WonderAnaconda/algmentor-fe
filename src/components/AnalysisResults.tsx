@@ -2,6 +2,8 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { 
   Clock, 
   TrendingDown, 
@@ -15,6 +17,9 @@ import {
   Info,
   TrendingUp
 } from 'lucide-react';
+import Plot from 'react-plotly.js';
+import allPlotData from '../../all_plot_data.json';
+import { useState } from 'react';
 
 interface AnalysisData {
   optimal_break_between_trades?: {
@@ -94,7 +99,443 @@ const getConfidenceIcon = (confidence: string) => {
   }
 };
 
+// Helper to render a plot for each recommendation
+function RecommendationPlot({ type }: { type: string }) {
+  // Common layout for all plots
+  const commonLayout = {
+    paper_bgcolor: '#18181b',
+    plot_bgcolor: '#18181b',
+    font: { color: '#e5e7eb', family: 'Inter, sans-serif', size: 14 },
+    margin: { t: 80, l: 80, r: 60, b: 80 }, // Better padding for axis labels
+    showlegend: false,
+    autosize: true,
+    // Title styling
+    title: {
+      font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+      x: 0.5,
+      xanchor: 'center',
+      y: 0.95,
+      yanchor: 'top'
+    },
+    // Rounded corners via CSS below
+  };
+  const plotStyle = { width: '100%', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 8px #0002', background: '#18181b', margin: '32px 0' };
+
+  if (type === 'optimal_break_between_trades') {
+    const data = allPlotData.cumulative_pnl_vs_cooldown_period;
+    return (
+      <Plot
+        data={[{
+          x: data.cooldown_minutes,
+          y: data.cumulative_pnl,
+          type: 'scatter',
+          mode: 'lines+markers',
+          name: 'Cumulative P&L',
+          line: { color: '#3b82f6' },
+          marker: { color: '#3b82f6' }
+        }]}
+        layout={{
+          ...commonLayout,
+          title: {
+            text: 'Cumulative P&L vs Cooldown Period',
+            font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+            x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Pause (minutes)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+          yaxis: { 
+            title: { text: 'P&L ($)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+        }}
+        style={plotStyle}
+        config={{ displayModeBar: false }}
+      />
+    );
+  }
+  if (type === 'optimal_intraday_drawdown') {
+    const data = allPlotData.cumulative_pnl_vs_drawdown_threshold;
+    return (
+      <Plot
+        data={[{
+          x: data.drawdown_percentages,
+          y: data.cumulative_pnl,
+          type: 'scatter',
+          mode: 'lines+markers',
+          name: 'Cumulative P&L',
+          line: { color: '#ef4444' },
+          marker: { color: '#ef4444' }
+        }]}
+        layout={{
+          ...commonLayout,
+          title: {
+            text: 'Cumulative P&L vs Drawdown Threshold',
+            font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+            x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Drawdown Threshold (%)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+          yaxis: { 
+            title: { text: 'P&L ($)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+        }}
+        style={plotStyle}
+        config={{ displayModeBar: false }}
+      />
+    );
+  }
+  if (type === 'optimal_max_trades_per_day') {
+    const data = allPlotData.distribution_of_trades_to_peak;
+    const tradesArray = data.trades_to_peak.map(t => typeof t === 'string' ? parseFloat(t) : t);
+    
+    // Filter out outliers (top 5% of values)
+    const sortedTrades = [...tradesArray].sort((a, b) => a - b);
+    const cutoffIndex = Math.floor(sortedTrades.length * 0.95);
+    const cutoffValue = sortedTrades[cutoffIndex];
+    const filteredTrades = tradesArray.filter(t => t <= cutoffValue);
+    
+    const minTrades = Math.min(...filteredTrades);
+    const maxTrades = Math.max(...filteredTrades);
+    const tradesRange = maxTrades - minTrades;
+    
+    return (
+      <Plot
+        data={[{
+          x: filteredTrades,
+          type: 'histogram',
+          marker: { 
+            color: '#6366f1',
+            width: 0.6
+          },
+          name: 'Trades to Peak',
+          nbinsx: 40, // Very granular binning
+          autobinx: false // Disable auto-binning to use custom nbinsx
+        }]}
+        layout={{
+          ...commonLayout,
+          title: {
+            text: 'Distribution of Trades to Peak',
+            font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+            x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Trades to Peak (count)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a',
+            range: [minTrades - tradesRange * 0.1, maxTrades + tradesRange * 0.1],
+            nticks: 15, // More x-axis labels
+            tickmode: 'auto'
+          },
+          yaxis: { 
+            title: { text: 'Frequency (days)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a',
+            autorange: true,
+            rangemode: 'tozero'
+          },
+          bargap: 0.2,
+          bargroupgap: 0.1,
+          barmode: 'overlay'
+        }}
+        style={plotStyle}
+        config={{ displayModeBar: false }}
+      />
+    );
+  }
+  if (type === 'optimal_trading_hours') {
+    const data = allPlotData.distribution_of_peak_pnl_times;
+    const pnlArray = data.pnl.map(p => typeof p === 'string' ? parseFloat(p) : p);
+    const minPnl = Math.min(...pnlArray);
+    const maxPnl = Math.max(...pnlArray);
+    const pnlRange = maxPnl - minPnl;
+    
+    // Convert time strings to minutes since midnight and sort chronologically
+    const timeData = data.time.map((timeStr, index) => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const minutesSinceMidnight = hours * 60 + minutes;
+      return {
+        time: timeStr,
+        minutesSinceMidnight,
+        pnl: pnlArray[index]
+      };
+    }).sort((a, b) => a.minutesSinceMidnight - b.minutesSinceMidnight);
+    
+    const sortedTimes = timeData.map(d => d.time);
+    const sortedPnls = timeData.map(d => d.pnl);
+    const sortedMinutes = timeData.map(d => d.minutesSinceMidnight);
+    
+    const minTime = Math.min(...sortedMinutes);
+    const maxTime = Math.max(...sortedMinutes);
+    const timeRange = maxTime - minTime;
+    
+    return (
+      <Plot
+        data={[{
+          x: sortedMinutes,
+          y: sortedPnls,
+          type: 'bar',
+          marker: { 
+            color: '#f59e42',
+            width: 0.6
+          },
+          name: 'Peak P&L'
+        }]}
+        layout={{
+          ...commonLayout,
+          title: {
+            text: 'Distribution of Peak P&L Times',
+            font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+            x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Time of Day (HH:MM)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a',
+            range: [minTime - timeRange * 0.1, maxTime + timeRange * 0.1],
+            tickmode: 'array',
+            tickvals: Array.from({length: 8}, (_, i) => minTime + (timeRange * i / 7)),
+            ticktext: Array.from({length: 8}, (_, i) => {
+              const minutes = minTime + (timeRange * i / 7);
+              const hours = Math.floor(minutes / 60);
+              const mins = Math.floor(minutes % 60);
+              return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}`;
+            })
+          },
+          yaxis: { 
+            title: { text: 'P&L ($)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a',
+            range: [minPnl - pnlRange * 0.1, maxPnl + pnlRange * 0.1]
+          },
+          bargap: 0.2,
+          bargroupgap: 0.1,
+          barmode: 'overlay'
+        }}
+        style={plotStyle}
+        config={{ displayModeBar: false }}
+      />
+    );
+  }
+  if (type === 'optimal_time_distance_range') {
+    const data = allPlotData.total_pnl_by_time_distance_bin;
+    const data2 = allPlotData.pnl_vs_time_distance;
+    const timeArray = data.time_distance_seconds.map(t => typeof t === 'string' ? parseFloat(t) : t);
+    const pnlArray = data.total_pnl.map(p => typeof p === 'string' ? parseFloat(p) : p);
+    const minTime = Math.min(...timeArray);
+    const maxTime = Math.max(...timeArray);
+    const timeRange = maxTime - minTime;
+    const minPnl = Math.min(...pnlArray);
+    const maxPnl = Math.max(...pnlArray);
+    const pnlRange = maxPnl - minPnl;
+    
+    return (
+      <>
+        <Plot
+          data={[{
+            x: data.time_distance_seconds,
+            y: data.total_pnl,
+            type: 'bar',
+            marker: { 
+              color: '#10b981',
+              width: 0.6
+            },
+            name: 'Total P&L'
+          }]}
+          layout={{
+            ...commonLayout,
+            title: {
+              text: 'Total P&L by Time Distance Bin',
+              font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+              x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Time Distance (seconds)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a',
+            range: [minTime - timeRange * 0.1, maxTime + timeRange * 0.1]
+          },
+          yaxis: { 
+            title: { text: 'P&L ($)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a',
+            range: [minPnl - pnlRange * 0.1, maxPnl + pnlRange * 0.1]
+          },
+          bargap: 0.2,
+          bargroupgap: 0.1,
+          barmode: 'overlay'
+        }}
+        style={plotStyle}
+        config={{ displayModeBar: false }}
+      />
+      <Plot
+        data={[{
+          x: data2.time_distance_minutes,
+          y: data2.pnl,
+          type: 'scatter',
+          mode: 'markers',
+          marker: { 
+            color: '#6366f1',
+            size: 4,
+            opacity: 0.7
+          },
+          name: 'P&L vs Time Distance'
+        }]}
+        layout={{
+          ...commonLayout,
+          title: {
+            text: 'P&L vs Time Distance',
+            font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+            x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Time Distance (minutes)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+          yaxis: { 
+            title: { text: 'P&L ($)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+        }}
+        style={plotStyle}
+        config={{ displayModeBar: false }}
+      />
+      </>
+    );
+  }
+  if (type === 'optimal_win_rate_window') {
+    const data = allPlotData.win_rate_vs_avg_time_distance_over_15m_window;
+    return (
+      <Plot
+        data={[{
+          x: data.time_distance,
+          y: data.win_rate,
+          type: 'scatter',
+          mode: 'markers',
+          marker: { color: '#f472b6' },
+          name: 'Win Rate'
+        }, {
+          x: data.time_distance_sorted,
+          y: data.rolling_win_rate,
+          type: 'scatter',
+          mode: 'lines',
+          line: { color: '#6366f1', width: 2 },
+          name: 'Rolling Win Rate'
+        }]}
+        layout={{
+          ...commonLayout,
+          title: {
+            text: 'Win Rate vs Avg Time Distance (15m Window)',
+            font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+            x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Avg Time Distance (minutes)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+          yaxis: { 
+            title: { text: 'Win Rate (%)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+        }}
+        style={plotStyle}
+        config={{ displayModeBar: false }}
+      />
+    );
+  }
+  if (type === 'volume_optimization') {
+    const data = allPlotData.volume_vs_time_distance;
+    return (
+      <Plot
+        data={[{
+          x: data.time_distance,
+          y: data.volume,
+          type: 'scatter',
+          mode: 'markers',
+          marker: { color: '#fbbf24' },
+          name: 'Volume vs Time Distance'
+        }]}
+        layout={{
+          ...commonLayout,
+          title: {
+            text: 'Volume vs Time Distance',
+            font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+            x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Time Distance (minutes)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+          yaxis: { 
+            title: { text: 'Volume (contracts)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+        }}
+        style={plotStyle}
+        config={{ displayModeBar: false }}
+      />
+    );
+  }
+  return null;
+}
+
 export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { onReset?: () => void }) {
+  const [showPlots, setShowPlots] = useState(true);
+
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Header */}
@@ -106,6 +547,19 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
           AI-powered analysis of your trading patterns with actionable optimization recommendations
         </p>
       </div>
+
+      {/* Plot Toggle */}
+      <div className="flex justify-center items-center space-x-2">
+        <Switch
+          id="show-plots"
+          checked={showPlots}
+          onCheckedChange={setShowPlots}
+        />
+        <Label htmlFor="show-plots" className="text-sm font-medium">
+          Show Analysis Plots
+        </Label>
+      </div>
+
       {onReset && (
         <div className="flex justify-center mt-2">
           <Button variant="outline" onClick={onReset}>
@@ -139,7 +593,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                 <div>
                   <p className="text-sm font-medium text-muted-foreground">Optimal Break Time</p>
                   <p className="text-2xl font-bold">
-                    {analysis.optimal_break_between_trades.minutes} min
+                    {Math.round(analysis.optimal_break_between_trades.minutes)} min
                   </p>
                 </div>
                 <Clock className="h-8 w-8 text-primary" />
@@ -203,11 +657,12 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   </div>
                   <div className="bg-muted/10 rounded-lg p-4">
                     <p className="text-2xl font-bold mb-2">
-                      {analysis.optimal_break_between_trades.minutes} minutes
+                      {Math.round(analysis.optimal_break_between_trades.minutes)} minutes
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {analysis.optimal_break_between_trades.explanation}
+                      Based on cooldown analysis, waiting {Math.round(analysis.optimal_break_between_trades.minutes)} minutes between trades maximizes cumulative P&L
                     </p>
+                    {showPlots && <RecommendationPlot type="optimal_break_between_trades" />}
                   </div>
                 </div>
               )}
@@ -227,12 +682,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                     <p className="text-sm text-muted-foreground">
                       {analysis.optimal_time_distance_range.explanation}
                     </p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Avg P&L in range:</span>
-                      <span className="text-sm font-semibold text-profit">
-                        ${analysis.optimal_time_distance_range.avg_pnl_in_range}
-                      </span>
-                    </div>
+                    {showPlots && <RecommendationPlot type="optimal_time_distance_range" />}
                   </div>
                 </div>
               )}
@@ -258,20 +708,15 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                       {analysis.optimal_intraday_drawdown.confidence.split(' - ')[0]} Confidence
                     </Badge>
                   </div>
-                  <div className="bg-gradient-loss rounded-lg p-4">
-                    <p className="text-2xl font-bold mb-2 text-loss-foreground">
-                      {analysis.optimal_intraday_drawdown.percentage}%
-                    </p>
-                    <p className="text-sm text-loss-foreground/80">
-                      {analysis.optimal_intraday_drawdown.explanation}
-                    </p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs text-loss-foreground/60">Consistency:</span>
-                      <span className="text-sm font-semibold text-loss-foreground">
-                        {(analysis.optimal_intraday_drawdown.consistency_rate * 100).toFixed(1)}%
-                      </span>
-                    </div>
-                  </div>
+                                  <div className="bg-gradient-loss rounded-lg p-4">
+                  <p className="text-2xl font-bold mb-2 text-loss-foreground">
+                    {analysis.optimal_intraday_drawdown.percentage}%
+                  </p>
+                  <p className="text-sm text-loss-foreground/80">
+                    {analysis.optimal_intraday_drawdown.explanation}
+                  </p>
+                  {showPlots && <RecommendationPlot type="optimal_intraday_drawdown" />}
+                </div>
                 </div>
               )}
 
@@ -285,17 +730,12 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   </div>
                   <div className="bg-muted/10 rounded-lg p-4">
                     <p className="text-2xl font-bold mb-2">
-                      {analysis.optimal_max_trades_per_day.median_trades_to_peak} trades
+                      {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades
                     </p>
                     <p className="text-sm text-muted-foreground">
-                      {analysis.optimal_max_trades_per_day.recommendation}
+                      Consider limiting to {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades per day, as this is the median number of trades needed to reach peak P&L
                     </p>
-                    <div className="mt-3 flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground">Current avg:</span>
-                      <span className="text-sm font-semibold">
-                        {analysis.optimal_max_trades_per_day.current_avg_trades_per_day} trades/day
-                      </span>
-                    </div>
+                    {showPlots && <RecommendationPlot type="optimal_max_trades_per_day" />}
                   </div>
                 </div>
               )}
@@ -327,9 +767,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   <p className="text-sm text-muted-foreground">
                     {analysis.optimal_trading_hours.explanation}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {analysis.optimal_trading_hours.recommendation}
-                  </p>
+                  {showPlots && <RecommendationPlot type="optimal_trading_hours" />}
                 </div>
               </div>
             </CardContent>
@@ -360,9 +798,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   <p className="text-sm text-muted-foreground">
                     {analysis.volume_optimization.explanation}
                   </p>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    {analysis.volume_optimization.recommendation}
-                  </p>
+                  {showPlots && <RecommendationPlot type="volume_optimization" />}
                 </div>
               </div>
             </CardContent>
@@ -384,7 +820,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-profit rounded-full mt-2 flex-shrink-0"></div>
                 <div>
-                  <p className="font-medium">Wait {analysis.optimal_break_between_trades.minutes} minutes between trades</p>
+                  <p className="font-medium">Wait {Math.round(analysis.optimal_break_between_trades.minutes)} minutes between trades</p>
                   <p className="text-sm text-muted-foreground">
                     This could improve your P&L by ${analysis.optimal_break_between_trades.pnl_improvement.toLocaleString()}
                   </p>
@@ -420,7 +856,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
               <div className="flex items-start gap-3">
                 <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
                 <div>
-                  <p className="font-medium">Limit to {analysis.optimal_max_trades_per_day.median_trades_to_peak} trades per day</p>
+                  <p className="font-medium">Limit to {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades per day</p>
                   <p className="text-sm text-muted-foreground">
                     This is when your cumulative P&L typically peaks
                   </p>

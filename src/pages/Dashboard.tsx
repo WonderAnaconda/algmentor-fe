@@ -12,6 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
 import { useRef } from 'react';
 import tradeAnalysisPy from '../../trade_analysis_daily.py?raw';
+import analysisResultJson from '../../analysis_result.json';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -112,6 +113,14 @@ export default function Dashboard() {
 
   // --- AUTH CHECK ---
   useEffect(() => {
+    // Bypass auth if VITE_DEBUG is true
+    const debug = import.meta.env.VITE_DEBUG === 'true';
+    if (debug) {
+      setAnalysisData(analysisResultJson);
+      setShowResults(true);
+      setAuthChecked(true);
+      return;
+    }
     let isMounted = true;
     const checkUser = async () => {
       const { data } = await supabase.auth.getUser();
@@ -145,6 +154,57 @@ export default function Dashboard() {
     };
   }, [navigate]);
   // --- END AUTH CHECK ---
+
+  // Hide upload and analysis logic in debug mode
+  if (import.meta.env.VITE_DEBUG === 'true' && showResults && analysisData) {
+    return (
+      <div className="min-h-screen bg-background">
+        {/* Header */}
+        <header className="border-b border-border bg-card/50 backdrop-blur">
+          <div className="container mx-auto px-6 py-4">
+            <div className="flex items-center justify-between">
+              <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                <div className="p-2 rounded-lg bg-gradient-primary">
+                  <TrendingUp className="h-5 w-5 text-primary-foreground" />
+                </div>
+                <div>
+                  <h1 className="font-bold text-lg">AlgMentor</h1>
+                  <p className="text-xs text-muted-foreground">Trading Performance Dashboard</p>
+                </div>
+              </Link>
+              <AuthStatus />
+            </div>
+          </div>
+        </header>
+        <main className="container mx-auto px-6 py-8">
+          <div className="space-y-8">
+            <AnalysisResults
+              analysis={analysisData}
+              onReset={() => {
+                // No reset in debug mode
+              }}
+            />
+            <div className="flex justify-center mt-4">
+              <button
+                className="bg-primary text-white px-4 py-2 rounded shadow hover:bg-primary/80 transition"
+                onClick={() => {
+                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(analysisData, null, 2));
+                  const dlAnchor = document.createElement('a');
+                  dlAnchor.setAttribute("href", dataStr);
+                  dlAnchor.setAttribute("download", "analysis_result.json");
+                  document.body.appendChild(dlAnchor);
+                  dlAnchor.click();
+                  document.body.removeChild(dlAnchor);
+                }}
+              >
+                Download Raw JSON
+              </button>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   if (!authChecked) {
     return (
@@ -310,16 +370,37 @@ import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col
           )}
 
           {showResults && analysisData && (
-            <AnalysisResults
-              analysis={analysisData}
-              onReset={() => {
-                setHasUploadedFile(false);
-                setAnalysisError(null);
-                setAnalysisData(null);
-                setShowResults(false);
-                setUploadProgress(0);
-              }}
-            />
+            <>
+              <AnalysisResults
+                analysis={analysisData}
+                onReset={() => {
+                  setHasUploadedFile(false);
+                  setAnalysisError(null);
+                  setAnalysisData(null);
+                  setShowResults(false);
+                  setUploadProgress(0);
+                }}
+              />
+              {/* Debug: Download JSON button */}
+              {import.meta.env.VITE_DEBUG === 'true' && (
+                <div className="flex justify-center mt-4">
+                  <button
+                    className="bg-primary text-white px-4 py-2 rounded shadow hover:bg-primary/80 transition"
+                    onClick={() => {
+                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(analysisData, null, 2));
+                      const dlAnchor = document.createElement('a');
+                      dlAnchor.setAttribute("href", dataStr);
+                      dlAnchor.setAttribute("download", "analysis_result.json");
+                      document.body.appendChild(dlAnchor);
+                      dlAnchor.click();
+                      document.body.removeChild(dlAnchor);
+                    }}
+                  >
+                    Download Raw JSON
+                  </button>
+                </div>
+              )}
+            </>
           )}
 
           {hasUploadedFile && !showResults && !analysisError && (
