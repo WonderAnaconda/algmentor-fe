@@ -10,6 +10,8 @@ import { useToast } from '@/hooks/use-toast';
 import AuthStatus from '@/components/AuthStatus';
 import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
+import { useRef } from 'react';
+import tradeAnalysisPy from '../../trade_analysis_daily.py?raw';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -49,6 +51,23 @@ const mockSuggestions = [
   }
 ];
 
+// Utility: deeply convert Maps to plain JS objects
+function mapToObject(obj: any): any {
+  if (obj instanceof Map) {
+    const out: any = {};
+    for (const [key, value] of obj.entries()) {
+      out[key] = mapToObject(value);
+    }
+    return out;
+  } else if (Array.isArray(obj)) {
+    return obj.map(mapToObject);
+  }
+  return obj;
+}
+
+// @ts-ignore
+declare global { interface Window { loadPyodide: any } }
+
 export default function Dashboard() {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -59,6 +78,37 @@ export default function Dashboard() {
   const [authChecked, setAuthChecked] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
+  const pyodideRef = useRef<any>(null);
+  const [pyodideReady, setPyodideReady] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+
+  // Preload Pyodide and packages on mount
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      // @ts-ignore
+      if (!window.loadPyodide) return; // Pyodide script not loaded yet
+      if (!pyodideRef.current) {
+        const pyodide = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
+        await pyodide.loadPackage(['pandas', 'numpy', 'scipy']);
+        await pyodide.runPythonAsync(tradeAnalysisPy);
+        if (!cancelled) {
+          pyodideRef.current = pyodide;
+          setPyodideReady(true);
+        }
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // When Pyodide becomes ready and there's a pending file, process it
+  useEffect(() => {
+    if (pyodideReady && pendingFile) {
+      actuallyHandleFileUpload(pendingFile);
+      setPendingFile(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pyodideReady, pendingFile]);
 
   // --- AUTH CHECK ---
   useEffect(() => {
@@ -104,52 +154,61 @@ export default function Dashboard() {
     );
   }
 
-  const handleFileUpload = async (file: File) => {
+  // Main upload handler: always start progress, queue or process file
+  const handleFileUpload = (file: File) => {
     setIsUploading(true);
     setUploadProgress(0);
     setHasUploadedFile(true);
     setAnalysisError(null);
     setAnalysisData(null);
+    if (!pyodideReady) {
+      setPendingFile(file);
+      // Progress bar will show, analysis will start when ready
+      return;
+    }
+    actuallyHandleFileUpload(file);
+  };
 
+  // Actual analysis logic, only called when Pyodide is ready
+  const actuallyHandleFileUpload = async (file: File) => {
     try {
       setUploadProgress(10);
-      // Prepare FormData for file upload
-      const formData = new FormData();
-      formData.append('file', file);
-
+      // Extract Journal sheet as CSV in the browser
+      let csvText = '';
+      const fileName = file.name.toLowerCase();
+      if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
+        const arrayBuffer = await file.arrayBuffer();
+        const workbook = XLSX.read(arrayBuffer, { type: 'array' });
+        const sheetName = 'Journal';
+        if (!workbook.Sheets[sheetName]) {
+          throw new Error(`Sheet 'Journal' not found in Excel file.`);
+        }
+        csvText = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
+      } else {
+        csvText = await file.text();
+      }
       setUploadProgress(30);
 
-      // POST to FastAPI endpoint
-      const apiBaseUrl = import.meta.env.VITE_API_ENDPOINT_URL;
-      if (!apiBaseUrl) {
-        throw new Error('API endpoint URL is not set in environment variables (VITE_API_ENDPOINT_URL)');
-      }
-      const response = await fetch(`${apiBaseUrl}/analyze`, {
-        method: 'POST',
-        body: formData,
-      });
-
       setUploadProgress(60);
+      pyodideRef.current.globals.set('csv_text', csvText);
+      const pythonCode = `\
+import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col in ['Open time', 'Close time']:\n    if col in df.columns:\n        df[col] = pd.to_datetime(df[col], errors='coerce')\nresult = analyse_trading_journal_df(df)\n`;
+      await pyodideRef.current.runPythonAsync(pythonCode);
+      const result = pyodideRef.current.globals.get('result').toJs();
+      const plainResult = mapToObject(result);
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Server error: ${response.status} - ${errorText}`);
-      }
-
-      const data = await response.json();
+      // Deeply convert to plain JSON object (handles any leftover non-plain objects)
+      const jsonResult = JSON.parse(JSON.stringify(plainResult));
+      console.log('Pyodide analysis result:', plainResult);
       setUploadProgress(90);
 
-      if (!data || !data.recommendations) {
-        throw new Error('No analysis data received');
-      }
-
-      setAnalysisData(data.recommendations);
+      setAnalysisData(jsonResult.recommendations);
       setShowResults(true);
       setUploadProgress(100);
 
       toast({
         title: "Analysis Complete!",
-        description: "Your trading performance has been analyzed. Check your improvement suggestions below.",
+        description: "File analyzed locally with Pyodide.",
       });
     } catch (error: any) {
       console.error('Analysis error:', error);

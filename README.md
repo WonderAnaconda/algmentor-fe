@@ -193,3 +193,28 @@ This guide will walk you through everything needed to host this Vite + React + S
 ---
 
 **Follow these steps and you’ll have a working, production-ready static app with Google login, Supabase, and custom API support on GitHub Pages!**
+
+## Local Python Analysis with Pyodide
+
+This app now performs all trading journal analysis **locally in your browser** using Python via [Pyodide](https://pyodide.org/):
+
+- When you upload a file (Excel or CSV), the analysis is run in your browser using the same Python code as the backend.
+- The Python environment (Pyodide + packages + analysis script) loads in the background as soon as you open the app.
+- You can interact with the dashboard and upload a file at any time. If you upload before Python is ready, the analysis will start automatically as soon as it is.
+- Excel files are parsed in the browser to extract the 'Journal' sheet as CSV, which is then analyzed in Python. CSV files are passed directly.
+- All computation and data stay on your device—no remote API call is made for analysis.
+- The UI and analysis results are identical to the previous backend-powered version.
+
+### How it works
+1. **Pyodide loads in the background** (with pandas, numpy, scipy, and your analysis script).
+2. **User uploads a file** (Excel or CSV).
+3. **If Pyodide is ready:** analysis starts immediately. If not, the file is queued and analysis starts as soon as Pyodide is ready.
+4. **Progress bar** is shown during analysis.
+5. **Results are displayed** in the dashboard, just as before.
+
+### Notes
+- The first load may take a few seconds as the Python environment is downloaded (cached for future visits).
+- All analysis is private and runs in your browser—no data is sent to a server.
+- The app is ready for future support of additional formats and more advanced local analysis.
+
+---
