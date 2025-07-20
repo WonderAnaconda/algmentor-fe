@@ -186,9 +186,6 @@ VITE_GOOGLE_CLIENT_SECRET=your-google-client-secret
 
 # Email Service (for notifications)
 VITE_RESEND_API_KEY=your-resend-api-key
-
-# App Configuration
-VITE_NEXTAUTH_URL=http://localhost:3000
 ```
 
 ### 2. Replace Placeholder Values

@@ -26,6 +26,7 @@ interface AnalysisData {
     minutes: number;
     explanation: string;
     pnl_improvement: number;
+    potential_dollar_gain: number;
     confidence: string;
     robustness: string;
   };
@@ -35,6 +36,7 @@ interface AnalysisData {
     confidence: string;
     consistency_rate: number;
     confidence_interval_95: [number, number];
+    potential_dollar_gain: number;
   };
   optimal_max_trades_per_day?: {
     median_trades_to_peak: number;
@@ -73,6 +75,18 @@ interface AnalysisData {
     recommendation: string;
     confidence: string;
   };
+  optimal_trading_time_window?: {
+    optimal_time_distance_minutes: number;
+    optimal_win_rate: number;
+    baseline_win_rate: number;
+    win_rate_improvement: number;
+    potential_dollar_gain: number;
+    robust_range_minutes: [number, number];
+    explanation: string;
+    recommendation: string;
+    confidence: string;
+    robustness: string;
+  };
 }
 
 interface AnalysisResultsProps {
@@ -99,8 +113,31 @@ const getConfidenceIcon = (confidence: string) => {
   }
 };
 
+const findClosestBarHeight = (timeArray: string[], pnlArray: number[], targetTime: number): number => {
+  // Convert time strings to minutes for comparison
+  const timeInMinutes = timeArray.map(timeStr => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    return hours * 60 + minutes;
+  });
+  
+  // Find the closest time index
+  let closestIndex = 0;
+  let minDistance = Math.abs(timeInMinutes[0] - targetTime);
+  
+  for (let i = 1; i < timeInMinutes.length; i++) {
+    const distance = Math.abs(timeInMinutes[i] - targetTime);
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestIndex = i;
+    }
+  }
+  
+  // Return the P&L value at the closest time (the bar height)
+  return pnlArray[closestIndex];
+};
+
 // Helper to render a plot for each recommendation
-function RecommendationPlot({ type }: { type: string }) {
+function RecommendationPlot({ type, analysis }: { type: string; analysis?: AnalysisData }) {
   // Common layout for all plots
   const commonLayout = {
     paper_bgcolor: '#18181b',
@@ -117,12 +154,60 @@ function RecommendationPlot({ type }: { type: string }) {
       y: 0.95,
       yanchor: 'top'
     },
+    // Responsive settings
+    uirevision: 'true', // Maintains zoom/pan state across resizes
     // Rounded corners via CSS below
   };
-  const plotStyle = { width: '100%', borderRadius: '16px', overflow: 'hidden', boxShadow: '0 2px 8px #0002', background: '#18181b', margin: '32px 0' };
+  const plotStyle = { 
+    width: '100%', 
+    height: 'auto',
+    borderRadius: '16px', 
+    overflow: 'hidden', 
+    boxShadow: '0 2px 8px #0002', 
+    background: '#18181b', 
+    margin: '32px 0',
+    minHeight: '400px',
+    maxWidth: '100%'
+  };
+  
+  // Responsive config for all plots
+  const responsiveConfig = { 
+    displayModeBar: false,
+    responsive: true,
+    useResizeHandler: true,
+    modeBarButtonsToRemove: ['pan2d', 'lasso2d', 'select2d'],
+    toImageButtonOptions: {
+      format: 'png',
+      filename: 'trading_analysis',
+      height: 600,
+      width: 800,
+      scale: 2
+    }
+  };
+
+  // Common tooltip configuration to prevent truncation
+  const tooltipConfig = {
+    hovermode: 'closest',
+    hoverlabel: {
+      bgcolor: '#1f2937',
+      bordercolor: '#374151',
+      font: { color: '#f9fafb', size: 12 },
+      namelength: -1, // Show full name
+      align: 'left'
+    }
+  };
 
   if (type === 'optimal_break_between_trades') {
     const data = allPlotData.cumulative_pnl_vs_cooldown_period;
+    const optimalMinutes = analysis?.optimal_break_between_trades?.minutes;
+    
+    // Find the optimal point for highlighting
+    const optimalIndex = optimalMinutes ? data.cooldown_minutes.findIndex(min => Math.abs(min - optimalMinutes) < 0.1) : -1;
+    const optimalPoint = optimalIndex >= 0 ? {
+      x: [data.cooldown_minutes[optimalIndex]],
+      y: [data.cumulative_pnl[optimalIndex]]
+    } : null;
+    
     return (
       <Plot
         data={[{
@@ -133,9 +218,23 @@ function RecommendationPlot({ type }: { type: string }) {
           name: 'Cumulative P&L',
           line: { color: '#3b82f6' },
           marker: { color: '#3b82f6' }
-        }]}
+        }, ...(optimalPoint ? [{
+          x: optimalPoint.x,
+          y: optimalPoint.y,
+          type: 'scatter',
+          mode: 'markers',
+          name: 'Optimal Point',
+          marker: { 
+            color: '#fbbf24',
+            size: 12,
+            symbol: 'diamond',
+            line: { color: '#ffffff', width: 2 }
+          },
+          showlegend: false
+        }] : [])]}
         layout={{
           ...commonLayout,
+          ...tooltipConfig,
           title: {
             text: 'Cumulative P&L vs Cooldown Period',
             font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
@@ -158,12 +257,24 @@ function RecommendationPlot({ type }: { type: string }) {
           },
         }}
         style={plotStyle}
-        config={{ displayModeBar: false }}
+        config={responsiveConfig}
       />
     );
   }
   if (type === 'optimal_intraday_drawdown') {
     const data = allPlotData.cumulative_pnl_vs_drawdown_threshold;
+    const optimalDrawdown = analysis?.optimal_intraday_drawdown?.percentage;
+    
+    // Find the optimal point for highlighting
+    let optimalIndex = -1;
+    if (optimalDrawdown && typeof optimalDrawdown === 'number') {
+      optimalIndex = data.drawdown_percentages.findIndex(pct => Math.abs(parseFloat(pct) - optimalDrawdown) < 1);
+    }
+    const optimalPoint = optimalIndex >= 0 ? {
+      x: [data.drawdown_percentages[optimalIndex]],
+      y: [data.cumulative_pnl[optimalIndex]]
+    } : null;
+    
     return (
       <Plot
         data={[{
@@ -174,9 +285,23 @@ function RecommendationPlot({ type }: { type: string }) {
           name: 'Cumulative P&L',
           line: { color: '#ef4444' },
           marker: { color: '#ef4444' }
-        }]}
+        }, ...(optimalPoint ? [{
+          x: optimalPoint.x,
+          y: optimalPoint.y,
+          type: 'scatter',
+          mode: 'markers',
+          name: 'Optimal Point',
+          marker: { 
+            color: '#fbbf24',
+            size: 12,
+            symbol: 'diamond',
+            line: { color: '#ffffff', width: 2 }
+          },
+          showlegend: false
+        }] : [])]}
         layout={{
           ...commonLayout,
+          ...tooltipConfig,
           title: {
             text: 'Cumulative P&L vs Drawdown Threshold',
             font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
@@ -199,7 +324,7 @@ function RecommendationPlot({ type }: { type: string }) {
           },
         }}
         style={plotStyle}
-        config={{ displayModeBar: false }}
+        config={responsiveConfig}
       />
     );
   }
@@ -217,6 +342,8 @@ function RecommendationPlot({ type }: { type: string }) {
     const maxTrades = Math.max(...filteredTrades);
     const tradesRange = maxTrades - minTrades;
     
+    const medianTrades = analysis?.optimal_max_trades_per_day?.median_trades_to_peak;
+    
     return (
       <Plot
         data={[{
@@ -229,9 +356,23 @@ function RecommendationPlot({ type }: { type: string }) {
           name: 'Trades to Peak',
           nbinsx: 40, // Very granular binning
           autobinx: false // Disable auto-binning to use custom nbinsx
-        }]}
+        }, ...(medianTrades && typeof medianTrades === 'number' ? [{
+          x: [medianTrades],
+          y: [7], // Position at top of the specific bar (approximate height)
+          type: 'scatter',
+          mode: 'markers',
+          name: 'Median Recommendation',
+          marker: { 
+            color: '#fbbf24',
+            size: 12,
+            symbol: 'diamond',
+            line: { color: '#ffffff', width: 2 }
+          },
+          showlegend: false
+        }] : [])]}
         layout={{
           ...commonLayout,
+          ...tooltipConfig,
           title: {
             text: 'Distribution of Trades to Peak',
             font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
@@ -262,7 +403,7 @@ function RecommendationPlot({ type }: { type: string }) {
           barmode: 'overlay'
         }}
         style={plotStyle}
-        config={{ displayModeBar: false }}
+        config={responsiveConfig}
       />
     );
   }
@@ -292,6 +433,15 @@ function RecommendationPlot({ type }: { type: string }) {
     const maxTime = Math.max(...sortedMinutes);
     const timeRange = maxTime - minTime;
     
+    const averagePeakTime = analysis?.optimal_trading_hours?.average_peak_time;
+    
+    // Convert average peak time to minutes since midnight
+    let averagePeakMinutes = null;
+    if (averagePeakTime) {
+      const [hours, minutes] = averagePeakTime.split(':').map(Number);
+      averagePeakMinutes = hours * 60 + minutes;
+    }
+    
     return (
       <Plot
         data={[{
@@ -303,9 +453,20 @@ function RecommendationPlot({ type }: { type: string }) {
             width: 0.6
           },
           name: 'Peak P&L'
-        }]}
+        }, ...(averagePeakMinutes ? [{
+          x: [averagePeakMinutes - 15, averagePeakMinutes + 15, averagePeakMinutes + 15, averagePeakMinutes - 15, averagePeakMinutes - 15],
+          y: [0, 0, Math.max(...data.pnl), Math.max(...data.pnl), 0],
+          type: 'scatter',
+          mode: 'lines',
+          line: { color: '#fbbf24', width: 3 },
+          fill: 'toself',
+          fillcolor: 'rgba(251, 191, 36, 0.2)',
+          name: 'Optimal Trading Window',
+          showlegend: false
+        }] : [])]}
         layout={{
           ...commonLayout,
+          ...tooltipConfig,
           title: {
             text: 'Distribution of Peak P&L Times',
             font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
@@ -341,7 +502,7 @@ function RecommendationPlot({ type }: { type: string }) {
           barmode: 'overlay'
         }}
         style={plotStyle}
-        config={{ displayModeBar: false }}
+        config={responsiveConfig}
       />
     );
   }
@@ -357,52 +518,26 @@ function RecommendationPlot({ type }: { type: string }) {
     const maxPnl = Math.max(...pnlArray);
     const pnlRange = maxPnl - minPnl;
     
+    const optimalMinMinutes = analysis?.optimal_time_distance_range?.min_minutes;
+    const optimalMaxMinutes = analysis?.optimal_time_distance_range?.max_minutes;
+    
+    // Convert to seconds for highlighting
+    const optimalMinSeconds = optimalMinMinutes ? optimalMinMinutes * 60 : null;
+    const optimalMaxSeconds = optimalMaxMinutes ? optimalMaxMinutes * 60 : null;
+    
     return (
-      <>
-        <Plot
-          data={[{
-            x: data.time_distance_seconds,
-            y: data.total_pnl,
-            type: 'bar',
-            marker: { 
-              color: '#10b981',
-              width: 0.6
-            },
-            name: 'Total P&L'
-          }]}
-          layout={{
-            ...commonLayout,
-            title: {
-              text: 'Total P&L by Time Distance Bin',
-              font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
-              x: 0.5,
-            xanchor: 'center',
-            y: 0.95,
-            yanchor: 'top'
-          },
-          xaxis: { 
-            title: { text: 'Time Distance (seconds)', font: { size: 14, color: '#e5e7eb' } },
-            color: '#e5e7eb', 
-            gridcolor: '#27272a', 
-            zerolinecolor: '#27272a',
-            range: [minTime - timeRange * 0.1, maxTime + timeRange * 0.1]
-          },
-          yaxis: { 
-            title: { text: 'P&L ($)', font: { size: 14, color: '#e5e7eb' } },
-            color: '#e5e7eb', 
-            gridcolor: '#27272a', 
-            zerolinecolor: '#27272a',
-            range: [minPnl - pnlRange * 0.1, maxPnl + pnlRange * 0.1]
-          },
-          bargap: 0.2,
-          bargroupgap: 0.1,
-          barmode: 'overlay'
-        }}
-        style={plotStyle}
-        config={{ displayModeBar: false }}
-      />
       <Plot
-        data={[{
+        data={[...(optimalMinMinutes && optimalMaxMinutes ? [{
+          x: [optimalMinMinutes, optimalMaxMinutes, optimalMaxMinutes, optimalMinMinutes, optimalMinMinutes],
+          y: [Math.min(...data2.pnl), Math.min(...data2.pnl), Math.max(...data2.pnl), Math.max(...data2.pnl), Math.min(...data2.pnl)],
+          type: 'scatter',
+          mode: 'lines',
+          line: { color: '#fbbf24', width: 2 },
+          fill: 'toself',
+          fillcolor: 'rgba(251, 191, 36, 0.2)',
+          name: 'Optimal Time Range',
+          showlegend: false
+        }] : []), {
           x: data2.time_distance_minutes,
           y: data2.pnl,
           type: 'scatter',
@@ -416,6 +551,7 @@ function RecommendationPlot({ type }: { type: string }) {
         }]}
         layout={{
           ...commonLayout,
+          ...tooltipConfig,
           title: {
             text: 'P&L vs Time Distance',
             font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
@@ -438,13 +574,13 @@ function RecommendationPlot({ type }: { type: string }) {
           },
         }}
         style={plotStyle}
-        config={{ displayModeBar: false }}
+        config={responsiveConfig}
       />
-      </>
     );
   }
   if (type === 'optimal_win_rate_window') {
     const data = allPlotData.win_rate_vs_avg_time_distance_over_15m_window;
+    
     return (
       <Plot
         data={[{
@@ -452,7 +588,11 @@ function RecommendationPlot({ type }: { type: string }) {
           y: data.win_rate,
           type: 'scatter',
           mode: 'markers',
-          marker: { color: '#f472b6' },
+          marker: { 
+            color: '#f472b6',
+            opacity: 0.2,
+            size: 4
+          },
           name: 'Win Rate'
         }, {
           x: data.time_distance_sorted,
@@ -464,6 +604,7 @@ function RecommendationPlot({ type }: { type: string }) {
         }]}
         layout={{
           ...commonLayout,
+          ...tooltipConfig,
           title: {
             text: 'Win Rate vs Avg Time Distance (15m Window)',
             font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
@@ -486,17 +627,102 @@ function RecommendationPlot({ type }: { type: string }) {
           },
         }}
         style={plotStyle}
-        config={{ displayModeBar: false }}
+        config={responsiveConfig}
+      />
+    );
+  }
+  if (type === 'optimal_trading_time_window') {
+    const data = allPlotData.win_rate_vs_avg_time_distance_over_15m_window;
+    const optimalTimeDistance = analysis?.optimal_trading_time_window?.optimal_time_distance_minutes;
+    const optimalWinRate = analysis?.optimal_trading_time_window?.optimal_win_rate;
+    
+    // Find the optimal point for highlighting
+    let optimalIndex = -1;
+    if (optimalTimeDistance && typeof optimalTimeDistance === 'number') {
+      optimalIndex = data.time_distance_sorted.findIndex(time => Math.abs(time - optimalTimeDistance) < 0.1);
+    }
+    const optimalPoint = optimalIndex >= 0 ? {
+      x: [data.time_distance_sorted[optimalIndex]],
+      y: [data.rolling_win_rate[optimalIndex]]
+    } : null;
+    
+    return (
+      <Plot
+        data={[{
+          x: data.time_distance,
+          y: data.win_rate,
+          type: 'scatter',
+          mode: 'markers',
+          marker: { 
+            color: '#f472b6',
+            opacity: 0.2,
+            size: 4
+          },
+          name: 'Win Rate'
+        }, {
+          x: data.time_distance_sorted,
+          y: data.rolling_win_rate,
+          type: 'scatter',
+          mode: 'lines',
+          line: { color: '#6366f1', width: 2 },
+          name: 'Rolling Win Rate'
+        }, ...(optimalPoint ? [{
+          x: optimalPoint.x,
+          y: optimalPoint.y,
+          type: 'scatter',
+          mode: 'markers',
+          name: 'Optimal Point',
+          marker: { 
+            color: '#fbbf24',
+            size: 12,
+            symbol: 'diamond',
+            line: { color: '#ffffff', width: 2 }
+          },
+          showlegend: false
+        }] : [])]}
+        layout={{
+          ...commonLayout,
+          ...tooltipConfig,
+          title: {
+            text: 'Optimal Trading Time Window',
+            font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
+            x: 0.5,
+            xanchor: 'center',
+            y: 0.95,
+            yanchor: 'top'
+          },
+          xaxis: { 
+            title: { text: 'Time Distance (minutes)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+          yaxis: { 
+            title: { text: 'Win Rate (%)', font: { size: 14, color: '#e5e7eb' } },
+            color: '#e5e7eb', 
+            gridcolor: '#27272a', 
+            zerolinecolor: '#27272a' 
+          },
+        }}
+        style={plotStyle}
+        config={responsiveConfig}
       />
     );
   }
   if (type === 'volume_optimization') {
     const data = allPlotData.volume_vs_time_distance;
+    
+    // Create coordinate pairs from time_distance and volume arrays
+    const points = data.time_distance.map((time, index) => ({
+      x: time,
+      y: data.volume[index]
+    }));
+    
     return (
       <Plot
         data={[{
-          x: data.time_distance,
-          y: data.volume,
+          x: points.map(p => p.x),
+          y: points.map(p => p.y),
           type: 'scatter',
           mode: 'markers',
           marker: { color: '#fbbf24' },
@@ -504,6 +730,7 @@ function RecommendationPlot({ type }: { type: string }) {
         }]}
         layout={{
           ...commonLayout,
+          ...tooltipConfig,
           title: {
             text: 'Volume vs Time Distance',
             font: { size: 18, color: '#f9fafb', family: 'Inter, sans-serif' },
@@ -522,11 +749,14 @@ function RecommendationPlot({ type }: { type: string }) {
             title: { text: 'Volume (contracts)', font: { size: 14, color: '#e5e7eb' } },
             color: '#e5e7eb', 
             gridcolor: '#27272a', 
-            zerolinecolor: '#27272a' 
+            zerolinecolor: '#27272a',
+            tickmode: 'linear',
+            dtick: 1,
+            tickformat: 'd'
           },
         }}
         style={plotStyle}
-        config={{ displayModeBar: false }}
+        config={responsiveConfig}
       />
     );
   }
@@ -639,7 +869,17 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Trade Timing Optimization */}
         {(analysis.optimal_break_between_trades || analysis.optimal_time_distance_range) && (
-          <Card className="bg-gradient-card shadow-card">
+          <Card className="bg-gradient-card shadow-card relative">
+            {analysis.optimal_break_between_trades?.potential_dollar_gain > 0 && (
+              <div className="absolute top-6 right-6 w-28 flex justify-center">
+                <div className="flex items-center gap-1 text-profit">
+                  <span className="text-xl font-semibold">
+                    +${analysis.optimal_break_between_trades.potential_dollar_gain.toLocaleString()}
+                  </span>
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+              </div>
+            )}
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
@@ -662,7 +902,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                     <p className="text-sm text-muted-foreground">
                       Based on cooldown analysis, waiting {Math.round(analysis.optimal_break_between_trades.minutes)} minutes between trades maximizes cumulative P&L
                     </p>
-                    {showPlots && <RecommendationPlot type="optimal_break_between_trades" />}
+                    {showPlots && <RecommendationPlot type="optimal_break_between_trades" analysis={analysis} />}
                   </div>
                 </div>
               )}
@@ -682,7 +922,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                     <p className="text-sm text-muted-foreground">
                       {analysis.optimal_time_distance_range.explanation}
                     </p>
-                    {showPlots && <RecommendationPlot type="optimal_time_distance_range" />}
+                    {showPlots && <RecommendationPlot type="optimal_time_distance_range" analysis={analysis} />}
                   </div>
                 </div>
               )}
@@ -692,7 +932,17 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
 
         {/* Risk Management */}
         {(analysis.optimal_intraday_drawdown || analysis.optimal_max_trades_per_day) && (
-          <Card className="bg-gradient-card shadow-card">
+          <Card className="bg-gradient-card shadow-card relative">
+            {analysis.optimal_intraday_drawdown?.potential_dollar_gain > 0 && (
+              <div className="absolute top-6 right-6 w-28 flex justify-center">
+                <div className="flex items-center gap-1 text-profit">
+                  <span className="text-xl font-semibold">
+                    +${analysis.optimal_intraday_drawdown.potential_dollar_gain.toLocaleString()}
+                  </span>
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+              </div>
+            )}
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <TrendingDown className="h-5 w-5 text-loss" />
@@ -708,15 +958,15 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                       {analysis.optimal_intraday_drawdown.confidence.split(' - ')[0]} Confidence
                     </Badge>
                   </div>
-                                  <div className="bg-gradient-loss rounded-lg p-4">
-                  <p className="text-2xl font-bold mb-2 text-loss-foreground">
-                    {analysis.optimal_intraday_drawdown.percentage}%
-                  </p>
-                  <p className="text-sm text-loss-foreground/80">
-                    {analysis.optimal_intraday_drawdown.explanation}
-                  </p>
-                  {showPlots && <RecommendationPlot type="optimal_intraday_drawdown" />}
-                </div>
+                  <div className="bg-gradient-loss rounded-lg p-4">
+                    <p className="text-2xl font-bold mb-2 text-loss-foreground">
+                      {analysis.optimal_intraday_drawdown.percentage}%
+                    </p>
+                    <p className="text-sm text-loss-foreground/80">
+                      {analysis.optimal_intraday_drawdown.explanation}
+                    </p>
+                                      {showPlots && <RecommendationPlot type="optimal_intraday_drawdown" analysis={analysis} />}
+                  </div>
                 </div>
               )}
 
@@ -735,7 +985,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                     <p className="text-sm text-muted-foreground">
                       Consider limiting to {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades per day, as this is the median number of trades needed to reach peak P&L
                     </p>
-                    {showPlots && <RecommendationPlot type="optimal_max_trades_per_day" />}
+                    {showPlots && <RecommendationPlot type="optimal_max_trades_per_day" analysis={analysis} />}
                   </div>
                 </div>
               )}
@@ -767,7 +1017,52 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   <p className="text-sm text-muted-foreground">
                     {analysis.optimal_trading_hours.explanation}
                   </p>
-                  {showPlots && <RecommendationPlot type="optimal_trading_hours" />}
+                                      {showPlots && <RecommendationPlot type="optimal_trading_hours" analysis={analysis} />}
+                </div>
+              </div>
+              
+
+              
+
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Optimal Trading Time Window */}
+        {analysis.optimal_trading_time_window && (
+          <Card className="bg-gradient-card shadow-card relative">
+            {analysis.optimal_trading_time_window.win_rate_improvement > 0 && (
+              <div className="absolute top-6 right-6 w-32 flex justify-center">
+                <div className="flex items-center gap-1 text-profit">
+                  <span className="text-xl font-semibold whitespace-nowrap">
+                    +{analysis.optimal_trading_time_window.win_rate_improvement.toFixed(1)}% WR
+                  </span>
+                  <TrendingUp className="h-4 w-4" />
+                </div>
+              </div>
+            )}
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Target className="h-5 w-5 text-profit" />
+                Optimal Trading Time Window
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-sm font-medium">Optimal Time Distance</span>
+                  <Badge variant="outline" className={getConfidenceColor(analysis.optimal_trading_time_window.confidence)}>
+                    {analysis.optimal_trading_time_window.confidence.split(' - ')[0]} Confidence
+                  </Badge>
+                </div>
+                <div className="bg-muted/10 rounded-lg p-4">
+                  <p className="text-2xl font-bold mb-2">
+                    {Math.floor(analysis.optimal_trading_time_window.optimal_time_distance_minutes)}:{(analysis.optimal_trading_time_window.optimal_time_distance_minutes % 1 * 60).toFixed(0).padStart(2, '0')}
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {analysis.optimal_trading_time_window.explanation}
+                  </p>
+                  {showPlots && <RecommendationPlot type="optimal_trading_time_window" analysis={analysis} />}
                 </div>
               </div>
             </CardContent>
@@ -798,7 +1093,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   <p className="text-sm text-muted-foreground">
                     {analysis.volume_optimization.explanation}
                   </p>
-                  {showPlots && <RecommendationPlot type="volume_optimization" />}
+                                      {showPlots && <RecommendationPlot type="volume_optimization" analysis={analysis} />}
                 </div>
               </div>
             </CardContent>
@@ -859,6 +1154,18 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   <p className="font-medium">Limit to {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades per day</p>
                   <p className="text-sm text-muted-foreground">
                     This is when your cumulative P&L typically peaks
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {analysis.optimal_trading_time_window && (
+              <div className="flex items-start gap-3">
+                <div className="w-2 h-2 bg-profit rounded-full mt-2 flex-shrink-0"></div>
+                <div>
+                  <p className="font-medium">Wait {Math.floor(analysis.optimal_trading_time_window.optimal_time_distance_minutes)}:{(analysis.optimal_trading_time_window.optimal_time_distance_minutes % 1 * 60).toFixed(0).padStart(2, '0')} between trades</p>
+                  <p className="text-sm text-muted-foreground">
+                    This could improve your win rate by +{analysis.optimal_trading_time_window.win_rate_improvement.toFixed(1)}%
                   </p>
                 </div>
               </div>

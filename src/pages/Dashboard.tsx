@@ -13,6 +13,8 @@ import * as XLSX from 'xlsx';
 import { useRef } from 'react';
 import tradeAnalysisPy from '../../trade_analysis_daily.py?raw';
 import analysisResultJson from '../../analysis_result.json';
+import atasLogo from '/atas_logo.png';
+import tradingViewLogo from '/tradingview.png';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -116,8 +118,6 @@ export default function Dashboard() {
     // Bypass auth if VITE_DEBUG is true
     const debug = import.meta.env.VITE_DEBUG === 'true';
     if (debug) {
-      setAnalysisData(analysisResultJson);
-      setShowResults(true);
       setAuthChecked(true);
       return;
     }
@@ -155,56 +155,7 @@ export default function Dashboard() {
   }, [navigate]);
   // --- END AUTH CHECK ---
 
-  // Hide upload and analysis logic in debug mode
-  if (import.meta.env.VITE_DEBUG === 'true' && showResults && analysisData) {
-    return (
-      <div className="min-h-screen bg-background">
-        {/* Header */}
-        <header className="border-b border-border bg-card/50 backdrop-blur">
-          <div className="container mx-auto px-6 py-4">
-            <div className="flex items-center justify-between">
-              <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-                <div className="p-2 rounded-lg bg-gradient-primary">
-                  <TrendingUp className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <div>
-                  <h1 className="font-bold text-lg">AlgMentor</h1>
-                  <p className="text-xs text-muted-foreground">Trading Performance Dashboard</p>
-                </div>
-              </Link>
-              <AuthStatus />
-            </div>
-          </div>
-        </header>
-        <main className="container mx-auto px-6 py-8">
-          <div className="space-y-8">
-            <AnalysisResults
-              analysis={analysisData}
-              onReset={() => {
-                // No reset in debug mode
-              }}
-            />
-            <div className="flex justify-center mt-4">
-              <button
-                className="bg-primary text-white px-4 py-2 rounded shadow hover:bg-primary/80 transition"
-                onClick={() => {
-                  const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(analysisData, null, 2));
-                  const dlAnchor = document.createElement('a');
-                  dlAnchor.setAttribute("href", dataStr);
-                  dlAnchor.setAttribute("download", "analysis_result.json");
-                  document.body.appendChild(dlAnchor);
-                  dlAnchor.click();
-                  document.body.removeChild(dlAnchor);
-                }}
-              >
-                Download Raw JSON
-              </button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
-  }
+
 
   if (!authChecked) {
     return (
@@ -317,11 +268,68 @@ import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col
               <h2 className="text-3xl font-bold text-primary">
                 Trading Performance Analysis
               </h2>
-              <p className="text-muted-foreground max-w-2xl mx-auto">
+                              <p className="text-muted-foreground max-w-2xl mx-auto">
                 Upload your trading records to get detailed performance analysis and AI-powered improvement suggestions
+                <span className="ml-2">
+                  <a 
+                    href="https://help.atas.net/en/support/solutions/articles/72000602476-trading-statistics" 
+                    target="_blank" 
+                    rel="noopener noreferrer"
+                    className="text-primary hover:text-primary/80 underline transition-colors"
+                  >
+                    Need help? Learn how to export your trading statistics →
+                  </a>
+                </span>
               </p>
-            </div>
-          )}
+                
+                {/* Supported Brokers Section */}
+                {/* <div className="mt-8">
+                  <h3 className="text-lg font-semibold text-muted-foreground mb-4">
+                    Supported Brokers
+                  </h3>
+                  <div className="flex items-center justify-center space-x-6">
+                    <div className="flex flex-col items-center space-y-2">
+                      <img 
+                        src={atasLogo} 
+                        alt="ATAS Trading Platform" 
+                        className="h-24 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity"
+                        onError={(e) => {
+                          // Fallback to text if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'h-24 w-auto bg-muted/20 rounded-lg flex items-center justify-center px-4';
+                            fallback.innerHTML = '<span class="text-base font-semibold text-primary">ATAS</span>';
+                            parent.insertBefore(fallback, target);
+                          }
+                        }}
+                      />
+                    </div>
+                    <div className="flex flex-col items-center space-y-2">
+                      <img 
+                        src={tradingViewLogo} 
+                        alt="TradingView Platform" 
+                        className="h-24 w-auto object-contain opacity-80 hover:opacity-100 transition-opacity"
+                        onError={(e) => {
+                          // Fallback to text if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = 'none';
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement('div');
+                            fallback.className = 'h-24 w-auto bg-muted/20 rounded-lg flex items-center justify-center px-4';
+                            fallback.innerHTML = '<span class="text-base font-semibold text-primary">TradingView</span>';
+                            parent.insertBefore(fallback, target);
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+                </div> */}
+              </div>
+            )}
 
           {/* Upload Section */}
           {!showResults && (
@@ -381,9 +389,10 @@ import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col
                   setUploadProgress(0);
                 }}
               />
-              {/* Debug: Download JSON button */}
-              {import.meta.env.VITE_DEBUG === 'true' && (
-                <div className="flex justify-center mt-4">
+              {/* Action buttons */}
+              <div className="flex justify-center gap-4 mt-4">
+                {/* Debug: Download JSON button */}
+                {import.meta.env.VITE_DEBUG === 'true' && (
                   <button
                     className="bg-primary text-white px-4 py-2 rounded shadow hover:bg-primary/80 transition"
                     onClick={() => {
@@ -398,8 +407,8 @@ import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col
                   >
                     Download Raw JSON
                   </button>
-                </div>
-              )}
+                )}
+              </div>
             </>
           )}
 
