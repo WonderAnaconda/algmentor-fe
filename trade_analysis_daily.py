@@ -496,9 +496,9 @@ def generate_trading_recommendations(correlations_df, time_peaks_df, sliding_win
             else:
                 # Middle points: average with both neighbors
                 smoothed_pnl = (total_pnls[i - 1] + total_pnls[i] + total_pnls[i + 1]) / 3
-                smoothed_pnls.append(smoothed_pnl)
+            smoothed_pnls.append(smoothed_pnl)
         
-        # Find optimal using smoothed values
+        # Find optimal using smoothed values (kernel smoothing for robustness)
         optimal_drawdown_idx = np.argmax(smoothed_pnls)
         optimal_drawdown_pct = drawdown_percentages[optimal_drawdown_idx]
         optimal_cumulative_pnl = total_pnls[optimal_drawdown_idx]  # Use original P&L for reporting
