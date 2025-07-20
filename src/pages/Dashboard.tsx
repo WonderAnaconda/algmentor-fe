@@ -5,7 +5,7 @@ import { TradingDashboard } from '@/components/TradingDashboard';
 import { AnalysisResults } from '@/components/AnalysisResults';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { LogOut, TrendingUp, Upload, AlertCircle } from 'lucide-react';
+import { LogOut, TrendingUp, Upload, AlertCircle, Menu } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import AuthStatus from '@/components/AuthStatus';
 import { supabase } from '@/integrations/supabase/client';
@@ -15,6 +15,12 @@ import tradeAnalysisPy from '../../trade_analysis_daily.py?raw';
 import analysisResultJson from '../../analysis_result.json';
 import atasLogo from '/atas_logo.png';
 import tradingViewLogo from '/tradingview.png';
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem
+} from '@/components/ui/dropdown-menu';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -84,6 +90,7 @@ export default function Dashboard() {
   const pyodideRef = useRef<any>(null);
   const [pyodideReady, setPyodideReady] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   // Preload Pyodide and packages on mount
   useEffect(() => {
@@ -153,6 +160,18 @@ export default function Dashboard() {
       listener?.subscription.unsubscribe();
     };
   }, [navigate]);
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data }) => {
+      setIsLoggedIn(!!data.user);
+    });
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      setIsLoggedIn(!!session);
+    });
+    return () => {
+      listener?.subscription.unsubscribe();
+    };
+  }, []);
   // --- END AUTH CHECK ---
 
 
@@ -253,8 +272,44 @@ import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col
                 <p className="text-xs text-muted-foreground">Trading Performance Dashboard</p>
               </div>
             </Link>
-            {/* Remove the middle Logout button, keep only AuthStatus */}
-            <AuthStatus />
+            {/* Desktop AuthStatus */}
+            <div className="hidden md:flex items-center gap-2">
+              <AuthStatus />
+            </div>
+            {/* Hamburger menu for mobile */}
+            <div className="flex md:hidden">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" aria-label="Open menu">
+                    <Menu className="h-6 w-6" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="min-w-[160px] flex flex-col space-y-2">
+                  <DropdownMenuItem asChild>
+                    {isLoggedIn ? (
+                      <Button
+                        className="flex items-center justify-center w-full min-h-[44px] px-4 bg-gradient-primary shadow-glow font-semibold"
+                        size="sm"
+                        onClick={async () => {
+                          await supabase.auth.signOut();
+                          navigate('/');
+                        }}
+                      >
+                        Logout
+                      </Button>
+                    ) : (
+                      <Button
+                        className="flex items-center justify-center w-full min-h-[44px] px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
+                        size="sm"
+                        onClick={() => navigate('/login')}
+                      >
+                        Sign In
+                      </Button>
+                    )}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           </div>
         </div>
       </header>

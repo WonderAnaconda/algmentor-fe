@@ -873,22 +873,34 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
       <div className="grid gap-6 lg:grid-cols-2">
         {/* Trade Timing Optimization */}
         {(analysis.optimal_break_between_trades || analysis.optimal_time_distance_range) && (
-          <Card className="bg-gradient-card shadow-card relative">
-            {analysis.optimal_break_between_trades?.potential_dollar_gain > 0 && (
-              <div className="absolute top-6 right-6 w-28 flex justify-center">
-                <div className="flex items-center gap-1 text-profit">
-                  <span className="text-xl font-semibold">
-                    +${analysis.optimal_break_between_trades.potential_dollar_gain.toLocaleString()}
-                  </span>
-                  <TrendingUp className="h-4 w-4" />
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader className="relative lg:pr-32 min-h-[96px]">
+              {/* Potential P&L gain: only show on md+ screens, stack below title on small screens */}
+              {analysis.optimal_break_between_trades?.potential_dollar_gain > 0 && (
+                <div className="hidden md:flex absolute inset-y-0 right-6 w-28 items-start justify-center pt-4">
+                  <div className="flex items-center gap-1 text-profit">
+                    <span className="text-xl font-semibold">
+                      +${analysis.optimal_break_between_trades.potential_dollar_gain.toLocaleString()}
+                    </span>
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
                 </div>
-              </div>
-            )}
-            <CardHeader>
+              )}
               <CardTitle className="flex items-center gap-2">
                 <Clock className="h-5 w-5 text-primary" />
                 Trade Timing Optimization
               </CardTitle>
+              {/* Show P&L gain below title on mobile */}
+              {analysis.optimal_break_between_trades?.potential_dollar_gain > 0 && (
+                <div className="flex md:hidden mt-2 pt-4 justify-center">
+                  <div className="flex items-center gap-1 text-profit">
+                    <span className="text-xl font-semibold">
+                      +${analysis.optimal_break_between_trades.potential_dollar_gain.toLocaleString()}
+                    </span>
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-6">
               {analysis.optimal_break_between_trades && (
@@ -936,22 +948,34 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
 
         {/* Risk Management */}
         {(analysis.optimal_intraday_drawdown || analysis.optimal_max_trades_per_day) && (
-          <Card className="bg-gradient-card shadow-card relative">
-            {analysis.optimal_intraday_drawdown?.potential_dollar_gain > 0 && (
-              <div className="absolute top-6 right-6 w-28 flex justify-center">
-                <div className="flex items-center gap-1 text-profit">
-                  <span className="text-xl font-semibold">
-                    +${analysis.optimal_intraday_drawdown.potential_dollar_gain.toLocaleString()}
-                  </span>
-                  <TrendingUp className="h-4 w-4" />
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader className="relative lg:pr-32 min-h-[96px]">
+              {/* Potential P&L gain: only show on md+ screens, stack below title on small screens */}
+              {analysis.optimal_intraday_drawdown?.potential_dollar_gain > 0 && (
+                <div className="hidden md:flex absolute inset-y-0 right-6 w-28 items-start justify-center pt-4">
+                  <div className="flex items-center gap-1 text-profit">
+                    <span className="text-xl font-semibold">
+                      +${analysis.optimal_intraday_drawdown.potential_dollar_gain.toLocaleString()}
+                    </span>
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
                 </div>
-              </div>
-            )}
-            <CardHeader>
+              )}
               <CardTitle className="flex items-center gap-2">
                 <TrendingDown className="h-5 w-5 text-loss" />
                 Risk Management
               </CardTitle>
+              {/* Show P&L gain below title on mobile */}
+              {analysis.optimal_intraday_drawdown?.potential_dollar_gain > 0 && (
+                <div className="flex md:hidden mt-2 pt-4 justify-center">
+                  <div className="flex items-center gap-1 text-profit">
+                    <span className="text-xl font-semibold">
+                      +${analysis.optimal_intraday_drawdown.potential_dollar_gain.toLocaleString()}
+                    </span>
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-6">
               {analysis.optimal_intraday_drawdown && (
@@ -1034,22 +1058,34 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
 
         {/* Optimal Trading Time Window */}
         {analysis.optimal_trading_time_window && (
-          <Card className="bg-gradient-card shadow-card relative">
-            {analysis.optimal_trading_time_window.win_rate_improvement > 0 && (
-              <div className="absolute top-6 right-6 w-32 flex justify-center">
-                <div className="flex items-center gap-1 text-profit">
-                  <span className="text-xl font-semibold whitespace-nowrap">
-                    +{analysis.optimal_trading_time_window.win_rate_improvement.toFixed(1)}% WR
-                  </span>
-                  <TrendingUp className="h-4 w-4" />
+          <Card className="bg-gradient-card shadow-card">
+            <CardHeader className="relative lg:pr-36 min-h-[96px]">
+              {/* Win rate improvement: only show on md+ screens, stack below title on small screens */}
+              {analysis.optimal_trading_time_window.win_rate_improvement > 0 && (
+                <div className="hidden md:flex absolute inset-y-0 right-6 w-32 items-start justify-center pt-4">
+                  <div className="flex items-center gap-1 text-profit">
+                    <span className="text-xl font-semibold whitespace-nowrap">
+                      +{analysis.optimal_trading_time_window.win_rate_improvement.toFixed(1)}% WR
+                    </span>
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
                 </div>
-              </div>
-            )}
-            <CardHeader>
+              )}
               <CardTitle className="flex items-center gap-2">
                 <Target className="h-5 w-5 text-profit" />
                 Optimal Trading Time Window
               </CardTitle>
+              {/* Show win rate improvement below title on mobile */}
+              {analysis.optimal_trading_time_window.win_rate_improvement > 0 && (
+                <div className="flex md:hidden mt-2 pt-4 justify-center">
+                  <div className="flex items-center gap-1 text-profit">
+                    <span className="text-xl font-semibold whitespace-nowrap">
+                      +{analysis.optimal_trading_time_window.win_rate_improvement.toFixed(1)}% WR
+                    </span>
+                    <TrendingUp className="h-4 w-4" />
+                  </div>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="space-y-3">
@@ -1106,21 +1142,23 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
       </div>
 
       {/* Action Items Summary */}
-      <Card className="bg-gradient-card shadow-card">
+      <Card className="bg-gradient-primary shadow-glow">
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Target className="h-5 w-5 text-primary" />
+          <CardTitle className="flex items-center gap-2 text-primary-foreground">
+            <Target className="h-5 w-5 text-primary-foreground" />
             Key Action Items
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="text-primary-foreground">
           <div className="grid gap-4 md:grid-cols-2">
             {analysis.optimal_break_between_trades && (
               <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-profit rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-5 h-5 flex items-center justify-center mt-2 flex-shrink-0">
+                  <span className="w-3 h-3 bg-profit rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
+                </div>
                 <div>
                   <p className="font-medium">Wait {Math.round(analysis.optimal_break_between_trades.minutes)} minutes between trades</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-black">
                     This could improve your P&L by ${analysis.optimal_break_between_trades.pnl_improvement.toLocaleString()}
                   </p>
                 </div>
@@ -1129,10 +1167,12 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
 
             {analysis.optimal_intraday_drawdown && (
               <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-loss rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-5 h-5 flex items-center justify-center mt-2 flex-shrink-0">
+                  <span className="w-3 h-3 bg-loss rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
+                </div>
                 <div>
                   <p className="font-medium">Stop trading at {analysis.optimal_intraday_drawdown.percentage}% drawdown</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-black">
                     {analysis.optimal_intraday_drawdown.explanation}
                   </p>
                 </div>
@@ -1141,10 +1181,12 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
 
             {analysis.optimal_trading_hours && (
               <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-5 h-5 flex items-center justify-center mt-2 flex-shrink-0">
+                  <span className="w-3 h-3 bg-primary rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
+                </div>
                 <div>
                   <p className="font-medium">Focus trading around {analysis.optimal_trading_hours.average_peak_time}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-black">
                     Peak P&L typically occurs at this time
                   </p>
                 </div>
@@ -1153,10 +1195,12 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
 
             {analysis.optimal_max_trades_per_day && (
               <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-primary rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-5 h-5 flex items-center justify-center mt-2 flex-shrink-0">
+                  <span className="w-3 h-3 bg-primary rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
+                </div>
                 <div>
                   <p className="font-medium">Limit to {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades per day</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-black">
                     This is when your cumulative P&L typically peaks
                   </p>
                 </div>
@@ -1165,10 +1209,12 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
 
             {analysis.optimal_trading_time_window && (
               <div className="flex items-start gap-3">
-                <div className="w-2 h-2 bg-profit rounded-full mt-2 flex-shrink-0"></div>
+                <div className="w-5 h-5 flex items-center justify-center mt-2 flex-shrink-0">
+                  <span className="w-3 h-3 bg-profit rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
+                </div>
                 <div>
                   <p className="font-medium">Wait {Math.floor(analysis.optimal_trading_time_window.optimal_time_distance_minutes)}:{(analysis.optimal_trading_time_window.optimal_time_distance_minutes % 1 * 60).toFixed(0).padStart(2, '0')} between trades</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-sm text-black">
                     This could improve your win rate by +{analysis.optimal_trading_time_window.win_rate_improvement.toFixed(1)}%
                   </p>
                 </div>
