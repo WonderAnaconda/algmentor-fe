@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import AuthStatus from '@/components/AuthStatus';
 import { supabase } from '@/integrations/supabase/client';
+import { landingCopy } from '../landingCopy';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -37,38 +38,12 @@ const Index = () => {
     }
   };
 
-  const features = [
-    {
-      icon: BarChart3,
-      title: "Comprehensive Analysis",
-      description: "Deep dive into your trading performance with advanced metrics and visualizations"
-    },
-    {
-      icon: Target,
-      title: "AI-Powered Insights",
-      description: "Get personalized recommendations to improve your trading strategy and profitability"
-    },
-    {
-      icon: Shield,
-      title: "Risk Assessment",
-      description: "Identify and mitigate risks in your trading approach with detailed risk analysis"
-    },
-    {
-      icon: Zap,
-      title: "Real-time Processing",
-      description: "Upload your trading data and get instant analysis with actionable insights"
-    },
-    {
-      icon: Users,
-      title: "Multi-broker Support",
-      description: "Compatible with trading records from all major brokers and platforms"
-    },
-    {
-      icon: TrendingUp,
-      title: "Performance Tracking",
-      description: "Monitor your progress over time and track improvement in your trading performance"
-    }
-  ];
+  // Map icons to features from landingCopy
+  const featureIcons = [BarChart3, Target, Shield, Zap, Users, TrendingUp];
+  const features = landingCopy.featuresSection.features.map((feature, idx) => ({
+    ...feature,
+    icon: featureIcons[idx]
+  }));
 
   return (
     <div className="min-h-screen bg-background">
@@ -81,15 +56,15 @@ const Index = () => {
                 <TrendingUp className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
-                <h1 className="font-bold text-xl">AlgMentor</h1>
-                <p className="text-xs text-muted-foreground">Performance Analytics Platform</p>
+                <h1 className="font-bold text-xl">{landingCopy.nav.title}</h1>
+                <p className="text-xs text-muted-foreground">{landingCopy.nav.subtitle}</p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               {/* Desktop buttons */}
               <div className="hidden md:flex items-center gap-4">
                 <Button onClick={handleStart} className="bg-gradient-primary shadow-glow">
-                  Get Started
+                  {landingCopy.nav.getStarted}
                 </Button>
                 <AuthStatus />
               </div>
@@ -104,7 +79,7 @@ const Index = () => {
                   <DropdownMenuContent align="end" className="min-w-[160px] flex flex-col space-y-2">
                     <DropdownMenuItem asChild>
                       <Button className="flex items-center justify-center w-full min-h-[44px] px-4 bg-gradient-primary shadow-glow font-semibold" size="sm" onClick={handleStart}>
-                        Get Started
+                        {landingCopy.nav.getStarted}
                       </Button>
                     </DropdownMenuItem>
                     <DropdownMenuItem asChild>
@@ -117,7 +92,7 @@ const Index = () => {
                             navigate('/');
                           }}
                         >
-                          Logout
+                          {landingCopy.nav.logout}
                         </Button>
                       ) : (
                         <Button
@@ -125,7 +100,7 @@ const Index = () => {
                           size="sm"
                           onClick={() => navigate('/login')}
                         >
-                          Sign In
+                          {landingCopy.nav.signIn}
                         </Button>
                       )}
                     </DropdownMenuItem>
@@ -142,11 +117,10 @@ const Index = () => {
         <div className="container mx-auto text-center space-y-8">
           <div className="space-y-4">
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent homepage-gradient-heading">
-              Optimize Your Trading Performance
+              {landingCopy.hero.heading}
             </h1>
             <p className="text-xl text-muted-foreground max-w-3xl mx-auto">
-              Upload your trading records and get AI-powered analysis with personalized improvement suggestions 
-              to enhance your trading strategy and maximize profitability.
+              {landingCopy.hero.description}
             </p>
           </div>
           
@@ -156,7 +130,7 @@ const Index = () => {
               onClick={handleStart}
               className="bg-gradient-primary hover:opacity-90 shadow-glow text-lg px-8 py-3"
             >
-              Start Analyzing Your Trades
+              {landingCopy.hero.startAnalyzing}
             </Button>
             <Button 
               size="lg" 
@@ -164,7 +138,7 @@ const Index = () => {
               onClick={() => navigate('/demo')}
               className="text-lg px-8 py-3"
             >
-              View Demo Analysis
+              {landingCopy.hero.viewDemo}
             </Button>
           </div>
         </div>
@@ -174,15 +148,15 @@ const Index = () => {
       <section className="py-20 px-6 bg-muted/20">
         <div className="container mx-auto">
           <div className="text-center space-y-4 mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold">Powerful Trading Analytics</h2>
+            <h2 className="text-3xl md:text-4xl font-bold">{landingCopy.featuresSection.heading}</h2>
             <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-              Everything you need to understand and improve your trading performance
+              {landingCopy.featuresSection.description}
             </p>
           </div>
           
           <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
             {features.map((feature, index) => (
-              <Card key={index} className="bg-gradient-card shadow-card hover:shadow-glow/20 transition-all duration-300">
+              <Card key={feature.key} className="bg-gradient-card shadow-card hover:shadow-glow/20 transition-all duration-300">
                 <CardContent className="p-6 space-y-4">
                   <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
                     <feature.icon className="h-6 w-6 text-primary" />
@@ -202,10 +176,10 @@ const Index = () => {
           <Card className="bg-gradient-primary p-12 text-center shadow-glow">
             <div className="space-y-6">
               <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground">
-                Ready to Improve Your Trading?
+                {landingCopy.cta.heading}
               </h2>
               <p className="text-primary-foreground/80 text-lg max-w-2xl mx-auto">
-                Join thousands of traders who have already improved their performance with our AI-powered analysis.
+                {landingCopy.cta.description}
               </p>
               <Button 
                 size="lg" 
@@ -213,7 +187,7 @@ const Index = () => {
                 onClick={() => navigate('/login')}
                 className="text-lg px-2 md:px-4 min-h-[64px] bg-background text-foreground hover:bg-background/90 whitespace-pre-line text-center"
               >
-                Start Your Analysis Today
+                {landingCopy.cta.startToday}
               </Button>
             </div>
           </Card>
@@ -223,7 +197,7 @@ const Index = () => {
       {/* Footer */}
       <footer className="py-8 px-6 border-t border-border">
         <div className="container mx-auto text-center text-muted-foreground">
-          <p>&copy; 2025 AlgMentor. Built with advanced AI to help traders succeed.</p>
+          <p>{landingCopy.footer.copyright}</p>
         </div>
       </footer>
     </div>
