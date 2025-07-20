@@ -1,60 +1,89 @@
 // Centralized copy for the landing page
 export const landingCopy = {
-  nav: {
-    title: "AlgMentor",
-    subtitle: "Performance Analytics Platform",
-    getStarted: "Get Started",
-    signIn: "Sign In",
-    logout: "Logout"
-  },
-  hero: {
-    heading: "Optimize Your Trading Performance",
-    description: "Upload your trading records and get AI-powered analysis with personalized improvement suggestions to enhance your trading strategy and maximize profitability.",
-    startAnalyzing: "Start Analyzing Your Trades",
-    viewDemo: "View Demo Analysis"
-  },
-  featuresSection: {
-    heading: "Powerful Trading Analytics",
-    description: "Everything you need to understand and improve your trading performance",
-    features: [
-      {
-        key: "comprehensiveAnalysis",
-        title: "Comprehensive Analysis",
-        description: "Deep dive into your trading performance with advanced metrics and visualizations"
-      },
-      {
-        key: "aiInsights",
-        title: "AI-Powered Insights",
-        description: "Get personalized recommendations to improve your trading strategy and profitability"
-      },
-      {
-        key: "riskAssessment",
-        title: "Risk Assessment",
-        description: "Identify and mitigate risks in your trading approach with detailed risk analysis"
-      },
-      {
-        key: "realTimeProcessing",
-        title: "Real-time Processing",
-        description: "Upload your trading data and get instant analysis with actionable insights"
-      },
-      {
-        key: "multiBroker",
-        title: "Multi-broker Support",
-        description: "Compatible with trading records from all major brokers and platforms"
-      },
-      {
-        key: "performanceTracking",
-        title: "Performance Tracking",
-        description: "Monitor your progress over time and track improvement in your trading performance"
-      }
-    ]
-  },
-  cta: {
-    heading: "Ready to Improve Your Trading?",
-    description: "Join thousands of traders who have already improved their performance with our AI-powered analysis.",
-    startToday: "Start Your Analysis Today"
-  },
-  footer: {
-    copyright: "© 2025 AlgMentor. Built with advanced AI to help traders succeed."
-  }
-}; 
+    nav: {
+      title: "AlgMentor",
+      subtitle: "Sharpen Your Edge",
+      getStarted: "Get Started",
+      signIn: "Sign In",
+      logout: "Logout"
+    },
+    hero: {
+      heading: "Fix What’s Holding Back Your Trades",
+      description:
+        "For scalpers and day traders. Upload your trading history and get instant, personalized suggestions to improve how you trade — based on your actual behavior, not guesswork.",
+      startAnalyzing: "Start Free Analysis",
+      viewDemo: "See Sample Report"
+    },
+
+    edgeSection: {
+      heading: "Your Edge. Sharpened.",
+      description:
+        "AlgMentor doesn't teach you how to trade — it helps you trade <em>your</em> way, better. Whether you're scalping momentum bursts or fading VWAP reverts, it analyzes your actual trades and gives you specific feedback on how to execute your own edge more consistently.",
+      points: [
+        {
+          key: "tailoredFeedback",
+          title: "Tailored to Your Strategy",
+          description: "The insights you get are based on your trades — not some generic model or one-size-fits-all playbook."
+        },
+        {
+          key: "executionPrecision",
+          title: "Improve Your Execution",
+          description: "Find out exactly where your edge breaks down — poor timing, overtrading, size drift — and how to fix it."
+        },
+        {
+          key: "alignedWithYou",
+          title: "Built Around Your Style",
+          description: "You bring the method. AlgMentor sharpens it — one trade, one insight, one edge at a time."
+        }
+      ]
+    },
+    
+    featuresSection: {
+      heading: "Built for Serious Intraday Traders",
+      description: "Real insight. No fluff. Just clear actions to improve your execution.",
+      features: [
+        {
+          key: "patternDetection",
+          title: "Spot Hidden Mistakes",
+          description: "Find habits like overtrading or revenge trading before they ruin your day."
+        },
+        {
+          key: "personalFeedback",
+          title: "Personalized Fixes",
+          description: "Get specific, tailored suggestions based on how you trade — not generic advice."
+        },
+        {
+          key: "disciplineAudit",
+          title: "Discipline Breakdown",
+          description: "See where you follow your plan and where you consistently slip."
+        },
+        {
+          key: "instantProcessing",
+          title: "Instant Results, Private by Design",
+          description: "Your data is processed locally and never leaves your device for maximum privacy."
+        },
+        {
+          key: "platformSupport",
+          title: "Works Everywhere",
+          description: "Upload trade logs from TradingView, Binance, MetaTrader, ATAS, and more."
+        },
+        {
+          key: "sessionImprovement",
+          title: "Session-to-Session Improvement",
+          description: "Each upload gives you sharper feedback — so your trading gets cleaner over time."
+        }
+          
+      ]
+    },
+
+    cta: {
+      heading: "You're Leaving Edge on the Table",
+      description:
+        "Find out what's hurting your trades — and fix it today. AlgMentor is free while in beta.",
+      startToday: "Run My Free Analysis"
+    },
+    footer: {
+      copyright: "© 2025 AlgMentor. All analysis runs locally. Your data stays with you."
+    }
+  };
+  

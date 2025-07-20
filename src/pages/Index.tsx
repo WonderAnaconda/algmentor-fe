@@ -151,9 +151,8 @@ const Index = () => {
               <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent pb-6">
                 {landingCopy.edgeSection.heading}
               </h2>
-              <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                {landingCopy.edgeSection.description}
-              </p>
+              {/* Render description as HTML to support <em> tag for cursive */}
+              <p className="text-lg text-muted-foreground max-w-2xl mx-auto" dangerouslySetInnerHTML={{ __html: landingCopy.edgeSection.description }} />
             </div>
             <div className="grid gap-8 md:grid-cols-3">
               {landingCopy.edgeSection.points.map((point, idx) => {
