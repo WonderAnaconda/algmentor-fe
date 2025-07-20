@@ -18,8 +18,10 @@ import {
   TrendingUp
 } from 'lucide-react';
 import Plot from 'react-plotly.js';
-import allPlotData from '../../all_plot_data.json';
+import latestDemoOutput from '../../latest_demo_output.json';
 import { useState } from 'react';
+
+type LatestDemoOutput = { data: Record<string, unknown> };
 
 interface AnalysisData {
   optimal_break_between_trades?: {
@@ -138,6 +140,8 @@ const findClosestBarHeight = (timeArray: string[], pnlArray: number[], targetTim
 
 // Helper to render a plot for each recommendation
 function RecommendationPlot({ type, analysis }: { type: string; analysis?: AnalysisData }) {
+  // Use the .data property from latest_demo_output.json
+  const allPlotData = (latestDemoOutput as LatestDemoOutput).data;
   // Common layout for all plots
   const commonLayout = {
     paper_bgcolor: '#18181b',
@@ -198,7 +202,7 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
   };
 
   if (type === 'optimal_break_between_trades') {
-    const data = allPlotData.cumulative_pnl_vs_cooldown_period;
+    const data = allPlotData.cumulative_pnl_vs_cooldown_period as { cooldown_minutes: number[]; cumulative_pnl: number[] };
     const optimalMinutes = analysis?.optimal_break_between_trades?.minutes;
     
     // Find the optimal point for highlighting
@@ -262,7 +266,7 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
     );
   }
   if (type === 'optimal_intraday_drawdown') {
-    const data = allPlotData.cumulative_pnl_vs_drawdown_threshold;
+    const data = allPlotData.cumulative_pnl_vs_drawdown_threshold as { drawdown_percentages: string[]; cumulative_pnl: number[] };
     const optimalDrawdown = analysis?.optimal_intraday_drawdown?.percentage;
     
     // Find the optimal point for highlighting
@@ -329,7 +333,7 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
     );
   }
   if (type === 'optimal_max_trades_per_day') {
-    const data = allPlotData.distribution_of_trades_to_peak;
+    const data = allPlotData.distribution_of_trades_to_peak as { trades_to_peak: (number|string)[] };
     const tradesArray = data.trades_to_peak.map(t => typeof t === 'string' ? parseFloat(t) : t);
     
     // Filter out outliers (top 5% of values)
@@ -408,7 +412,7 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
     );
   }
   if (type === 'optimal_trading_hours') {
-    const data = allPlotData.distribution_of_peak_pnl_times;
+    const data = allPlotData.distribution_of_peak_pnl_times as { pnl: (number|string)[]; time: string[] };
     const pnlArray = data.pnl.map(p => typeof p === 'string' ? parseFloat(p) : p);
     const minPnl = Math.min(...pnlArray);
     const maxPnl = Math.max(...pnlArray);
@@ -455,7 +459,7 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
           name: 'Peak P&L'
         }, ...(averagePeakMinutes ? [{
           x: [averagePeakMinutes - 15, averagePeakMinutes + 15, averagePeakMinutes + 15, averagePeakMinutes - 15, averagePeakMinutes - 15],
-          y: [0, 0, Math.max(...data.pnl), Math.max(...data.pnl), 0],
+          y: [0, 0, Math.max(...sortedPnls), Math.max(...sortedPnls), 0],
           type: 'scatter',
           mode: 'lines',
           line: { color: '#fbbf24', width: 3 },
@@ -507,8 +511,8 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
     );
   }
   if (type === 'optimal_time_distance_range') {
-    const data = allPlotData.total_pnl_by_time_distance_bin;
-    const data2 = allPlotData.pnl_vs_time_distance;
+    const data = allPlotData.total_pnl_by_time_distance_bin as { time_distance_seconds: (number|string)[]; total_pnl: (number|string)[] };
+    const data2 = allPlotData.pnl_vs_time_distance as { time_distance_minutes: (number|string)[]; pnl: (number|string)[] };
     const timeArray = data.time_distance_seconds.map(t => typeof t === 'string' ? parseFloat(t) : t);
     const pnlArray = data.total_pnl.map(p => typeof p === 'string' ? parseFloat(p) : p);
     const minTime = Math.min(...timeArray);
@@ -529,7 +533,7 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
       <Plot
         data={[...(optimalMinMinutes && optimalMaxMinutes ? [{
           x: [optimalMinMinutes, optimalMaxMinutes, optimalMaxMinutes, optimalMinMinutes, optimalMinMinutes],
-          y: [Math.min(...data2.pnl), Math.min(...data2.pnl), Math.max(...data2.pnl), Math.max(...data2.pnl), Math.min(...data2.pnl)],
+          y: [Math.min(...data2.pnl.map(p => typeof p === 'string' ? parseFloat(p) : p)), Math.min(...data2.pnl.map(p => typeof p === 'string' ? parseFloat(p) : p)), Math.max(...data2.pnl.map(p => typeof p === 'string' ? parseFloat(p) : p)), Math.max(...data2.pnl.map(p => typeof p === 'string' ? parseFloat(p) : p)), Math.min(...data2.pnl.map(p => typeof p === 'string' ? parseFloat(p) : p))],
           type: 'scatter',
           mode: 'lines',
           line: { color: '#fbbf24', width: 2 },
@@ -538,8 +542,8 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
           name: 'Optimal Time Range',
           showlegend: false
         }] : []), {
-          x: data2.time_distance_minutes,
-          y: data2.pnl,
+          x: data2.time_distance_minutes.map(t => typeof t === 'string' ? parseFloat(t) : t),
+          y: data2.pnl.map(p => typeof p === 'string' ? parseFloat(p) : p),
           type: 'scatter',
           mode: 'markers',
           marker: { 
@@ -579,13 +583,13 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
     );
   }
   if (type === 'optimal_win_rate_window') {
-    const data = allPlotData.win_rate_vs_avg_time_distance_over_15m_window;
+    const data = allPlotData.win_rate_vs_avg_time_distance_over_15m_window as { time_distance: (number|string)[]; win_rate: (number|string)[]; time_distance_sorted: (number|string)[]; rolling_win_rate: (number|string)[] };
     
     return (
       <Plot
         data={[{
-          x: data.time_distance,
-          y: data.win_rate,
+          x: data.time_distance.map(t => typeof t === 'string' ? parseFloat(t) : t),
+          y: data.win_rate.map(w => typeof w === 'string' ? parseFloat(w) : w),
           type: 'scatter',
           mode: 'markers',
           marker: { 
@@ -595,8 +599,8 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
           },
           name: 'Win Rate'
         }, {
-          x: data.time_distance_sorted,
-          y: data.rolling_win_rate,
+          x: data.time_distance_sorted.map(t => typeof t === 'string' ? parseFloat(t) : t),
+          y: data.rolling_win_rate.map(w => typeof w === 'string' ? parseFloat(w) : w),
           type: 'scatter',
           mode: 'lines',
           line: { color: '#6366f1', width: 2 },
@@ -632,25 +636,25 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
     );
   }
   if (type === 'optimal_trading_time_window') {
-    const data = allPlotData.win_rate_vs_avg_time_distance_over_15m_window;
+    const data = allPlotData.win_rate_vs_avg_time_distance_over_15m_window as { time_distance: (number|string)[]; win_rate: (number|string)[]; time_distance_sorted: (number|string)[]; rolling_win_rate: (number|string)[] };
     const optimalTimeDistance = analysis?.optimal_trading_time_window?.optimal_time_distance_minutes;
     const optimalWinRate = analysis?.optimal_trading_time_window?.optimal_win_rate;
     
     // Find the optimal point for highlighting
     let optimalIndex = -1;
     if (optimalTimeDistance && typeof optimalTimeDistance === 'number') {
-      optimalIndex = data.time_distance_sorted.findIndex(time => Math.abs(time - optimalTimeDistance) < 0.1);
+      optimalIndex = data.time_distance_sorted.map(t => typeof t === 'string' ? parseFloat(t) : t).findIndex(time => Math.abs(time - optimalTimeDistance) < 0.1);
     }
     const optimalPoint = optimalIndex >= 0 ? {
-      x: [data.time_distance_sorted[optimalIndex]],
-      y: [data.rolling_win_rate[optimalIndex]]
+      x: [typeof data.time_distance_sorted[optimalIndex] === 'string' ? parseFloat(data.time_distance_sorted[optimalIndex] as string) : data.time_distance_sorted[optimalIndex]],
+      y: [typeof data.rolling_win_rate[optimalIndex] === 'string' ? parseFloat(data.rolling_win_rate[optimalIndex] as string) : data.rolling_win_rate[optimalIndex]]
     } : null;
     
     return (
       <Plot
         data={[{
-          x: data.time_distance,
-          y: data.win_rate,
+          x: data.time_distance.map(t => typeof t === 'string' ? parseFloat(t) : t),
+          y: data.win_rate.map(w => typeof w === 'string' ? parseFloat(w) : w),
           type: 'scatter',
           mode: 'markers',
           marker: { 
@@ -660,8 +664,8 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
           },
           name: 'Win Rate'
         }, {
-          x: data.time_distance_sorted,
-          y: data.rolling_win_rate,
+          x: data.time_distance_sorted.map(t => typeof t === 'string' ? parseFloat(t) : t),
+          y: data.rolling_win_rate.map(w => typeof w === 'string' ? parseFloat(w) : w),
           type: 'scatter',
           mode: 'lines',
           line: { color: '#6366f1', width: 2 },
@@ -710,12 +714,12 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
     );
   }
   if (type === 'volume_optimization') {
-    const data = allPlotData.volume_vs_time_distance;
+    const data = allPlotData.volume_vs_time_distance as { time_distance: (number|string)[]; volume: (number|string)[] };
     
     // Create coordinate pairs from time_distance and volume arrays
     const points = data.time_distance.map((time, index) => ({
-      x: time,
-      y: data.volume[index]
+      x: typeof time === 'string' ? parseFloat(time) : time,
+      y: typeof data.volume[index] === 'string' ? parseFloat(data.volume[index] as string) : data.volume[index]
     }));
     
     return (
