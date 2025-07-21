@@ -1,3 +1,12 @@
+# TODOs
+- [ ] SEO optimise landing page and outline USPs
+- [ ] Add support for TradingView, Binance, MT4/5
+- [ ] Port trading stats analysis from other project, then split analysis into 'Performance' and 'Improvements'
+- [ ] Improve logic for how much can be saved via improvements
+- [ ] Make explanations of improvement suggestions more elaborate
+- [ ] Include advanced graphs like this [example](https://chatgpt.com/share/687d068d-4e54-800f-a99a-c2cd80e41c0d)
+- [ ] Add comparison: user can upload another file to compare how they improved, 3 lines pre, post, total
+
 # Product Improvement Suggestions for Retail Trade Analytics SaaS
 
 ## What’s Outstanding (Keep & Highlight)

@@ -92,6 +92,7 @@ export function AuthCard({
         toast({
           title: "Account created!",
           description: "Please check your email to confirm your account.",
+          variant: "success"
         });
       }
     } catch (error: any) {

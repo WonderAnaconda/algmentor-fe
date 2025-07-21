@@ -79,7 +79,7 @@ export const landingCopy = {
     cta: {
       heading: "You're Leaving Edge on the Table",
       description:
-        "Find out what's hurting your trades — and fix it today. AlgMentor is free while in beta.",
+        "Find out what's hurting your trades — and fix it today. AlgMentor is free while in beta. Excel at becoming the best version of yourself. Join lots of traders sharpening their edge now already.",
       startToday: "Run My Free Analysis"
     },
     footer: {
