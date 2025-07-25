@@ -138,10 +138,16 @@ const findClosestBarHeight = (timeArray: string[], pnlArray: number[], targetTim
   return pnlArray[closestIndex];
 };
 
-// Helper to render a plot for each recommendation
-function RecommendationPlot({ type, analysis }: { type: string; analysis?: AnalysisData }) {
-  // Use the .data property from latest_demo_output.json
-  const allPlotData = (latestDemoOutput as LatestDemoOutput).data;
+// Add a type for plot data
+interface PlotData {
+  [key: string]: any;
+}
+
+// Update RecommendationPlot to accept plotData as a prop
+function RecommendationPlot({ type, analysis, plotData }: { type: string; analysis?: AnalysisData; plotData: PlotData }) {
+  // Use the plotData prop instead of latestDemoOutput
+  const allPlotData = plotData;
+
   // Common layout for all plots
   const commonLayout = {
     paper_bgcolor: '#18181b',
@@ -767,7 +773,7 @@ function RecommendationPlot({ type, analysis }: { type: string; analysis?: Analy
   return null;
 }
 
-export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { onReset?: () => void }) {
+export function AnalysisResults({ analysis, onReset, plotData }: AnalysisResultsProps & { onReset?: () => void; plotData: PlotData }) {
   const [showPlots, setShowPlots] = useState(true);
 
   return (
@@ -918,7 +924,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                     <p className="text-sm text-muted-foreground">
                       Based on cooldown analysis, waiting {Math.round(analysis.optimal_break_between_trades.minutes)} minutes between trades maximizes cumulative P&L
                     </p>
-                    {showPlots && <RecommendationPlot type="optimal_break_between_trades" analysis={analysis} />}
+                    {showPlots && <RecommendationPlot type="optimal_break_between_trades" analysis={analysis} plotData={plotData} />}
                   </div>
                 </div>
               )}
@@ -938,7 +944,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                     <p className="text-sm text-muted-foreground">
                       {analysis.optimal_time_distance_range.explanation}
                     </p>
-                    {showPlots && <RecommendationPlot type="optimal_time_distance_range" analysis={analysis} />}
+                    {showPlots && <RecommendationPlot type="optimal_time_distance_range" analysis={analysis} plotData={plotData} />}
                   </div>
                 </div>
               )}
@@ -993,7 +999,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                     <p className="text-sm text-loss-foreground/80">
                       {analysis.optimal_intraday_drawdown.explanation}
                     </p>
-                                      {showPlots && <RecommendationPlot type="optimal_intraday_drawdown" analysis={analysis} />}
+                                      {showPlots && <RecommendationPlot type="optimal_intraday_drawdown" analysis={analysis} plotData={plotData} />}
                   </div>
                 </div>
               )}
@@ -1013,7 +1019,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                     <p className="text-sm text-muted-foreground">
                       Consider limiting to {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades per day, as this is the median number of trades needed to reach peak P&L
                     </p>
-                    {showPlots && <RecommendationPlot type="optimal_max_trades_per_day" analysis={analysis} />}
+                    {showPlots && <RecommendationPlot type="optimal_max_trades_per_day" analysis={analysis} plotData={plotData} />}
                   </div>
                 </div>
               )}
@@ -1045,7 +1051,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   <p className="text-sm text-muted-foreground">
                     {analysis.optimal_trading_hours.explanation}
                   </p>
-                                      {showPlots && <RecommendationPlot type="optimal_trading_hours" analysis={analysis} />}
+                                      {showPlots && <RecommendationPlot type="optimal_trading_hours" analysis={analysis} plotData={plotData} />}
                 </div>
               </div>
               
@@ -1102,7 +1108,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   <p className="text-sm text-muted-foreground">
                     {analysis.optimal_trading_time_window.explanation}
                   </p>
-                  {showPlots && <RecommendationPlot type="optimal_trading_time_window" analysis={analysis} />}
+                  {showPlots && <RecommendationPlot type="optimal_trading_time_window" analysis={analysis} plotData={plotData} />}
                 </div>
               </div>
             </CardContent>
@@ -1133,7 +1139,7 @@ export function AnalysisResults({ analysis, onReset }: AnalysisResultsProps & { 
                   <p className="text-sm text-muted-foreground">
                     {analysis.volume_optimization.explanation}
                   </p>
-                                      {showPlots && <RecommendationPlot type="volume_optimization" analysis={analysis} />}
+                                      {showPlots && <RecommendationPlot type="volume_optimization" analysis={analysis} plotData={plotData} />}
                 </div>
               </div>
             </CardContent>

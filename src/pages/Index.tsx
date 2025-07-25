@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { TrendingUp, BarChart3, Target, Shield, Zap, Users, Menu } from 'lucide-react';
@@ -12,6 +12,8 @@ import {
 import AuthStatus from '@/components/AuthStatus';
 import { supabase } from '@/integrations/supabase/client';
 import { landingCopy } from '../landingCopy';
+import Navbar from "@/components/Navbar";
+import Aurora from '../components/Aurora';
 
 const Index = () => {
   const navigate = useNavigate();
@@ -47,74 +49,22 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="border-b border-border bg-card/50 backdrop-blur">
-        <div className="container mx-auto px-6 py-4 min-h-[72px]">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-lg bg-gradient-primary">
-                <TrendingUp className="h-6 w-6 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="font-bold text-xl">{landingCopy.nav.title}</h1>
-                <p className="text-xs text-muted-foreground">{landingCopy.nav.subtitle}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-4">
-              {/* Desktop buttons */}
-              <div className="hidden md:flex items-center gap-4">
-                <Button onClick={handleStart} className="bg-gradient-primary shadow-glow">
-                  {landingCopy.nav.getStarted}
-                </Button>
-                <AuthStatus />
-              </div>
-              {/* Hamburger menu for mobile */}
-              <div className="flex md:hidden">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" aria-label="Open menu">
-                      <Menu className="h-6 w-6" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="min-w-[160px] flex flex-col space-y-2">
-                    <DropdownMenuItem asChild>
-                      <Button className="flex items-center justify-center w-full min-h-[44px] px-4 bg-gradient-primary shadow-glow font-semibold" size="sm" onClick={handleStart}>
-                        {landingCopy.nav.getStarted}
-                      </Button>
-                    </DropdownMenuItem>
-                    <DropdownMenuItem asChild>
-                      {isLoggedIn ? (
-                        <Button
-                          className="flex items-center justify-center w-full min-h-[44px] px-4 bg-gradient-primary shadow-glow font-semibold"
-                          size="sm"
-                          onClick={async () => {
-                            await supabase.auth.signOut();
-                            navigate('/');
-                          }}
-                        >
-                          {landingCopy.nav.logout}
-                        </Button>
-                      ) : (
-                        <Button
-                          className="flex items-center justify-center w-full min-h-[44px] px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                          size="sm"
-                          onClick={() => navigate('/login')}
-                        >
-                          {landingCopy.nav.signIn}
-                        </Button>
-                      )}
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            </div>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       {/* Hero Section */}
-      <section className="flex items-center justify-center py-20 px-6 min-h-[85vh]">
-        <div className="container mx-auto text-center space-y-8 flex flex-col justify-center">
+      <section className="flex items-center justify-center py-20 px-6 min-h-[85vh] relative z-10">
+
+        <div className="absolute inset-0 w-full h-full z-0 pointer-events-none">
+            <Aurora
+              colorStops={['#3c83f6', '#6da2f8', '#3c83f6', '#16a249']}
+              blend={0.8}
+              amplitude={0.5}
+              speed={0.8}
+            />
+        </div>
+
+        <div className="container mx-auto text-center space-y-8 flex flex-col justify-center relative z-10">
+
           <div className="space-y-4">
             <h1 className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent homepage-gradient-heading">
               {landingCopy.hero.heading}

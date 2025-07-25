@@ -97,7 +97,8 @@ export function DemoAnalysis() {
   // Use recommendations or analysis from latest_demo_output.json
   const output = latestDemoOutput as unknown as Record<string, unknown>;
   const analysis = (output.recommendations ?? output.analysis ?? output.data) as AnalysisData;
+  const plotData = (output.data ?? {}) as Record<string, unknown>;
   return (
-    <AnalysisResults analysis={analysis} />
+    <AnalysisResults analysis={analysis} plotData={plotData} />
   );
 }

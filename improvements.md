@@ -1,5 +1,5 @@
 # TODOs
-- [ ] SEO optimise landing page and outline USPs
+- [x] SEO optimise landing page and outline USPs
 - [ ] Add support for TradingView, Binance, MT4/5
 - [ ] Port trading stats analysis from other project, then split analysis into 'Performance' and 'Improvements'
 - [ ] Improve logic for how much can be saved via improvements

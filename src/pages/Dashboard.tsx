@@ -11,8 +11,7 @@ import AuthStatus from '@/components/AuthStatus';
 import { supabase } from '@/integrations/supabase/client';
 import * as XLSX from 'xlsx';
 import { useRef } from 'react';
-import tradeAnalysisPy from '../../trade_analysis_daily.py?raw';
-import analysisResultJson from '../../analysis_result.json';
+import tradeAnalysisPy from '../../python/trade_analysis_daily.py?raw';
 import atasLogo from '/atas_logo.png';
 import tradingViewLogo from '/tradingview.png';
 import {
@@ -21,6 +20,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
+import { ClusterAnalysis } from '@/components/ClusterAnalysis';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -91,6 +91,7 @@ export default function Dashboard() {
   const [pyodideReady, setPyodideReady] = useState(false);
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState<any>(null);
 
   // Preload Pyodide and packages on mount
   useEffect(() => {
@@ -100,7 +101,7 @@ export default function Dashboard() {
       if (!window.loadPyodide) return; // Pyodide script not loaded yet
       if (!pyodideRef.current) {
         const pyodide = await window.loadPyodide({ indexURL: 'https://cdn.jsdelivr.net/pyodide/v0.25.1/full/' });
-        await pyodide.loadPackage(['pandas', 'numpy', 'scipy']);
+        await pyodide.loadPackage(['pandas', 'numpy', 'scipy', 'scikit-learn']);
         await pyodide.runPythonAsync(tradeAnalysisPy);
         if (!cancelled) {
           pyodideRef.current = pyodide;
@@ -191,6 +192,7 @@ export default function Dashboard() {
     setHasUploadedFile(true);
     setAnalysisError(null);
     setAnalysisData(null);
+    setUploadProgress(10);
     if (!pyodideReady) {
       setPendingFile(file);
       // Progress bar will show, analysis will start when ready
@@ -203,9 +205,9 @@ export default function Dashboard() {
   const actuallyHandleFileUpload = async (file: File) => {
     try {
       setUploadProgress(10);
-      // Extract Journal sheet as CSV in the browser
       let csvText = '';
       const fileName = file.name.toLowerCase();
+      let broker = 'atas';
       if (fileName.endsWith('.xlsx') || fileName.endsWith('.xls')) {
         const arrayBuffer = await file.arrayBuffer();
         const workbook = XLSX.read(arrayBuffer, { type: 'array' });
@@ -214,28 +216,29 @@ export default function Dashboard() {
           throw new Error(`Sheet 'Journal' not found in Excel file.`);
         }
         csvText = XLSX.utils.sheet_to_csv(workbook.Sheets[sheetName]);
-      } else {
-        csvText = await file.text();
+        // Log the CSV string for debugging
+        // console.log('FE CSV sent to Pyodide (first 1000 chars):', csvText.slice(0, 1000));
+      } 
+      else {
+        throw new Error('Only ATAS .xlsx or .xls files are supported right now. Please upload a valid Excel file.');
+        // csvText = await file.text();
+        // broker = 'tradingview';
       }
       setUploadProgress(30);
 
       setUploadProgress(60);
       pyodideRef.current.globals.set('csv_text', csvText);
-      const pythonCode = `\
-import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col in ['Open time', 'Close time']:\n    if col in df.columns:\n        df[col] = pd.to_datetime(df[col], errors='coerce')\nresult = analyse_trading_journal_df(df)\n`;
-      await pyodideRef.current.runPythonAsync(pythonCode);
+      pyodideRef.current.globals.set('broker', broker);
+      await pyodideRef.current.runPythonAsync('result = process_uploaded_file(csv_text, broker)');
       const result = pyodideRef.current.globals.get('result').toJs();
       const plainResult = mapToObject(result);
-
-      // Deeply convert to plain JSON object (handles any leftover non-plain objects)
       const jsonResult = JSON.parse(JSON.stringify(plainResult));
       console.log('Pyodide analysis result:', plainResult);
       setUploadProgress(90);
-
-      setAnalysisData(jsonResult.recommendations);
+      setAnalysisResult(jsonResult); // Store the full result
+      setAnalysisData(jsonResult.recommendations); // For backward compatibility
       setShowResults(true);
       setUploadProgress(100);
-
       toast({
         title: "Analysis Complete!",
         description: "File analyzed locally with Pyodide.",
@@ -432,18 +435,27 @@ import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col
             </Card>
           )}
 
-          {showResults && analysisData && (
+          {showResults && analysisResult && analysisResult.recommendations && analysisResult.data && (
             <>
               <AnalysisResults
-                analysis={analysisData}
+                analysis={analysisResult.recommendations}
+                plotData={analysisResult.data}
                 onReset={() => {
                   setHasUploadedFile(false);
                   setAnalysisError(null);
                   setAnalysisData(null);
+                  setAnalysisResult(null);
                   setShowResults(false);
                   setUploadProgress(0);
                 }}
               />
+              {/* Cluser Analysis Section */}
+              {analysisResult.clusters && (
+                <ClusterAnalysis
+                  clusters={analysisResult.clusters.data}
+                  interpretations={analysisResult.clusters.interpretation}
+                />
+              )}
               {/* Action buttons */}
               <div className="flex justify-center gap-4 mt-4">
                 {/* Debug: Download JSON button */}
@@ -451,7 +463,7 @@ import pandas as pd\nimport io\ndf = pd.read_csv(io.StringIO(csv_text))\nfor col
                   <button
                     className="bg-primary text-white px-4 py-2 rounded shadow hover:bg-primary/80 transition"
                     onClick={() => {
-                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(analysisData, null, 2));
+                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(analysisResult, null, 2));
                       const dlAnchor = document.createElement('a');
                       dlAnchor.setAttribute("href", dataStr);
                       dlAnchor.setAttribute("download", "analysis_result.json");

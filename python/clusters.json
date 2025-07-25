@@ -1,0 +1,86 @@
+{
+    "data": {
+        "0": {
+            "count": 107,
+            "ratio": 0.1419098143236074,
+            "mean_pnl": -14.205607476635514,
+            "std_pnl": 69.26810618385133,
+            "mean_duration": 132.3271028037383,
+            "mean_return_per_min": 258.15433882663524,
+            "mean_pause": 973.2336448598131,
+            "mean_hour": 18.850467289719628,
+            "most_common_day": 4,
+            "direction_ratio": {
+                "long": 0.5794392523364486,
+                "short": 0.4205607476635514
+            }
+        },
+        "1": {
+            "count": 158,
+            "ratio": 0.20954907161803712,
+            "mean_pnl": -17.18354430379747,
+            "std_pnl": 118.25018488061899,
+            "mean_duration": 126.63924050632912,
+            "mean_return_per_min": -51.1937158213492,
+            "mean_pause": 141.68354430379748,
+            "mean_hour": 16.20253164556962,
+            "most_common_day": 2,
+            "direction_ratio": {
+                "long": 0.620253164556962,
+                "short": 0.379746835443038
+            }
+        },
+        "2": {
+            "count": 172,
+            "ratio": 0.22811671087533156,
+            "mean_pnl": 9.186046511627907,
+            "std_pnl": 48.92828302919446,
+            "mean_duration": 55.75,
+            "mean_return_per_min": 65.1512776473135,
+            "mean_pause": 202.81976744186048,
+            "mean_hour": 16.593023255813954,
+            "most_common_day": 0,
+            "direction_ratio": {
+                "long": 0.5755813953488372,
+                "short": 0.42441860465116277
+            }
+        },
+        "3": {
+            "count": 179,
+            "ratio": 0.23740053050397877,
+            "mean_pnl": -4.983240223463687,
+            "std_pnl": 67.1318905496323,
+            "mean_duration": 27.30167597765363,
+            "mean_return_per_min": -432.84217786443696,
+            "mean_pause": 100.7877094972067,
+            "mean_hour": 15.558659217877095,
+            "most_common_day": 3,
+            "direction_ratio": {
+                "short": 0.5418994413407822,
+                "long": 0.4581005586592179
+            }
+        },
+        "4": {
+            "count": 138,
+            "ratio": 0.1830238726790451,
+            "mean_pnl": -23.920289855072465,
+            "std_pnl": 157.5876102800724,
+            "mean_duration": 44.5,
+            "mean_return_per_min": -37.236590472774125,
+            "mean_pause": 74.8840579710145,
+            "mean_hour": 19.5,
+            "most_common_day": 2,
+            "direction_ratio": {
+                "long": 0.5072463768115942,
+                "short": 0.4927536231884058
+            }
+        }
+    },
+    "interpretation": {
+        "0": "small losers, long pauses, Friday",
+        "1": "small losers, early NY session, Wednesday",
+        "2": "small winners, short trades, early NY session, Monday",
+        "3": "small losers, short trades, early NY session, Thursday",
+        "4": "small losers, short trades, late NY session, Wednesday"
+    }
+}
