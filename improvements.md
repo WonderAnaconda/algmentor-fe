@@ -6,6 +6,12 @@
 - [ ] Make explanations of improvement suggestions more elaborate
 - [ ] Include advanced graphs like this [example](https://chatgpt.com/share/687d068d-4e54-800f-a99a-c2cd80e41c0d)
 - [ ] Add comparison: user can upload another file to compare how they improved, 3 lines pre, post, total
+- [ ] use simple UMAP instead of tSNE for speedup and better results (umap is not in pyodided so we need a different solution)
+- [ ] fix extreme point display in stats
+- [ ] sort clusters by size in BE already
+- [ ] make negative clusters have negative bars in cards
+- [ ] 'composure' graph composing of hwo close the metrics at the time are to the optimal ones (eg break, win rate, volume, trade duration)
+  - add boldness and anxiety plots too, qantifying the up/down deviation from optimums
 
 # Product Improvement Suggestions for Retail Trade Analytics SaaS
 

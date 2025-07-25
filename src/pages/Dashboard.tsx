@@ -204,7 +204,7 @@ export default function Dashboard() {
   // Actual analysis logic, only called when Pyodide is ready
   const actuallyHandleFileUpload = async (file: File) => {
     try {
-      setUploadProgress(10);
+      setUploadProgress(30);
       let csvText = '';
       const fileName = file.name.toLowerCase();
       let broker = 'atas';
@@ -224,7 +224,6 @@ export default function Dashboard() {
         // csvText = await file.text();
         // broker = 'tradingview';
       }
-      setUploadProgress(30);
 
       setUploadProgress(60);
       pyodideRef.current.globals.set('csv_text', csvText);

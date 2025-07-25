@@ -274,7 +274,7 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
                           style={{
                             width: `${Math.round(normalize(key, cluster[key as keyof ClusterData] as number) * 100)}%`,
                             background: key === 'mean_pnl'
-                              ? (isProfit ? '#34d399' : '#3b82f6') // emerald-400 or blue-500
+                              ? (isProfit ? '#34d399' : '#ba5f72') // emerald-400 or blue-500
                               : (key === 'count' || key === 'ratio' ? '#ccc' : '#3b82f6'), // blue-500
                             transition: 'width 0.3s',
                           }}

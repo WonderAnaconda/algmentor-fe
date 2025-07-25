@@ -14,14 +14,7 @@ import random
 import sklearn
 warnings.filterwarnings('ignore')
 
-# import os
-# os.environ["OMP_NUM_THREADS"] = "1"
-# os.environ["OPENBLAS_NUM_THREADS"] = "1"
-# os.environ["MKL_NUM_THREADS"] = "1"
-# os.environ["VECLIB_MAXIMUM_THREADS"] = "1"
-# os.environ["NUMEXPR_NUM_THREADS"] = "1"
-
-
+# TODO reintegrate via UI
 def filter_trading_hours(df):
     """Filter trades to only include those between 15:30 and 22:00"""
     # Convert 'Open time' column to datetime if it's not already
@@ -140,6 +133,7 @@ def analyze_correlations(daily_groups):
         pnl_values = []
         volume_values = []
         wins = []
+        holding_times = []
         for i in range(1, len(day_trades)):
             time_diff = (day_trades.iloc[i]['Open time'] - day_trades.iloc[i-1]['Close time']).total_seconds() / 60
             if time_diff < 0:
@@ -153,10 +147,13 @@ def analyze_correlations(daily_groups):
             else:
                 volume_values.append(1)
             wins.append(1 if day_trades.iloc[i][pnl_col] > 0 else 0)
-        for i, (time_dist, pnl, vol, win) in enumerate(zip(time_distances, pnl_values, volume_values, wins)):
+            holding_time = (day_trades.iloc[i]['Close time'] - day_trades.iloc[i]['Open time']).total_seconds() / 60
+            holding_times.append(holding_time)
+        for i, (time_dist, pnl, vol, win, holding_time) in enumerate(zip(time_distances, pnl_values, volume_values, wins, holding_times)):
             all_correlations.append({
                 'date': date,
                 'time_distance': time_dist,
+                'holding_time': holding_time,
                 'pnl': pnl,
                 'volume': vol,
                 'win': win
@@ -317,7 +314,7 @@ def analyze_optimal_drawdown_distribution(daily_groups, only_positive_days=False
         total_pnls.append(total_pnl)
     return drawdown_percentages, total_pnls
 
-def plot_results(correlations_df, time_peaks_df, sliding_window_df, daily_groups):
+def plot_results(correlations_df, time_peaks_df, sliding_window_df, daily_groups, df):
     """Highly optimized plot results generation with minimal DataFrame operations."""
 
     # Initialize JSON data structure
@@ -333,6 +330,7 @@ def plot_results(correlations_df, time_peaks_df, sliding_window_df, daily_groups
             filtered_win_sorted = filtered_win.sort_values('avg_time_distance').reset_index(drop=True)
             
             # Calculate rolling average using vectorized operations
+            # TODO this needs to use 15m windw
             rolling_win_rate = filtered_win_sorted['win_rate'].rolling(window=20, min_periods=1).mean()
             
             # Save raw data for win rate vs time distance
@@ -368,57 +366,7 @@ def plot_results(correlations_df, time_peaks_df, sliding_window_df, daily_groups
             "time_distance": filtered['time_distance'].tolist(),
             "volume": filtered['volume'].tolist()
         }
-
-    # 5. Peak time distribution
-    if not time_peaks_df.empty:
-        # Save raw data for peak P&L times to JSON
-        peak_times = [t.strftime('%H:%M') for t in time_peaks_df['peak_time']]
-        peak_pnls = time_peaks_df['peak_pnl'].tolist()
-        all_plot_data["distribution_of_peak_pnl_times"] = {
-            "time": peak_times,
-            "pnl": peak_pnls
-        }
-    
-    # 6. Trades to peak distribution
-    if not time_peaks_df.empty:
-        # Save raw data for trades to peak distribution
-        all_plot_data["distribution_of_trades_to_peak"] = {
-            "trades_to_peak": time_peaks_df['trades_to_peak'].tolist()
-        }
-    
-    # 7. Optimal drawdown cumulative P&L analysis
-    drawdown_percentages, total_pnls = analyze_optimal_drawdown_distribution(daily_groups)
-    
-    # Save raw data for drawdown analysis
-    # print(type(drawdown_percentages), type(total_pnls))
-    all_plot_data["cumulative_pnl_vs_drawdown_threshold"] = {
-        "drawdown_percentages": drawdown_percentages.tolist(),
-        "cumulative_pnl": total_pnls
-    }
-    
-    # DEBUG
-    # import matplotlib.pyplot as plt
-    # # Plot drawdown percentages vs total PnLs
-    # plt.figure(figsize=(8, 5))
-    # plt.plot(drawdown_percentages, total_pnls, marker='o', label='Total PnL')
-    # plt.xlabel('Drawdown Percentage (%)')
-    # plt.ylabel('Total Cumulative PnL')
-    # plt.title('Drawdown Percentage vs Total Cumulative PnL')
-    # plt.grid(True)
-    # plt.tight_layout()
-    # plt.legend()
-    # plt.show()
-    
-    # 8. Cumulative P&L vs minimum cooldown period (replaces heatmap)
-    cooldown_seconds_list = np.arange(0, 1801, 15)  # 0 to 1800 seconds (30 minutes) in 15-sec steps
-    pnl_by_cooldown = simulate_cooldown_pnl(daily_groups, cooldown_seconds_list)
-    
-    # Save raw data for cooldown analysis
-    all_plot_data["cumulative_pnl_vs_cooldown_period"] = {
-        "cooldown_minutes": (cooldown_seconds_list / 60).tolist(),
-        "cumulative_pnl": pnl_by_cooldown
-    }
-
+        
     # 4. P&L vs binned time distance (bar chart, replaces win rate by hour of day)
     if not correlations_df.empty:
         # Bin time distances into 15-second bins using vectorized operations
@@ -442,6 +390,72 @@ def plot_results(correlations_df, time_peaks_df, sliding_window_df, daily_groups
             "time_distance_seconds": x.tolist(),
             "total_pnl": y.tolist()
         }
+
+    # 5. Peak time distribution
+    if not time_peaks_df.empty:
+        # Save raw data for peak P&L times to JSON
+        peak_times = [t.strftime('%H:%M') for t in time_peaks_df['peak_time']]
+        peak_pnls = time_peaks_df['peak_pnl'].tolist()
+        all_plot_data["distribution_of_peak_pnl_times"] = {
+            "time": peak_times,
+            "pnl": peak_pnls
+        }
+    
+    # 6. Trades to peak distribution
+    if not time_peaks_df.empty:
+        # Save raw data for trades to peak distribution
+        all_plot_data["distribution_of_trades_to_peak"] = {
+            "trades_to_peak": time_peaks_df['trades_to_peak'].tolist()
+        }
+    
+    # 7. Optimal drawdown cumulative P&L analysis
+    drawdown_percentages, total_pnls = analyze_optimal_drawdown_distribution(daily_groups)
+    
+    # Save raw data for drawdown analysis
+    all_plot_data["cumulative_pnl_vs_drawdown_threshold"] = {
+        "drawdown_percentages": drawdown_percentages.tolist(),
+        "cumulative_pnl": total_pnls
+    }
+    
+    # 8. Cumulative P&L vs minimum cooldown period (replaces heatmap)
+    cooldown_seconds_list = np.arange(0, 1801, 15)  # 0 to 1800 seconds (30 minutes) in 15-sec steps
+    pnl_by_cooldown = simulate_cooldown_pnl(daily_groups, cooldown_seconds_list)
+    
+    # Save raw data for cooldown analysis
+    all_plot_data["cumulative_pnl_vs_cooldown_period"] = {
+        "cooldown_minutes": (cooldown_seconds_list / 60).tolist(),
+        "cumulative_pnl": pnl_by_cooldown
+    }
+
+    # 9. Metrics by weekday for grouped bar chart
+    if not correlations_df.empty:
+        # Compute metrics by weekday using correlations_df, which now contains all required metrics and the date
+        by_weekday = {}
+        if "date" in correlations_df.columns:
+            # Derive weekday from the 'date' column (which should be datetime.date or convertible)
+            correlations_df = correlations_df.copy()
+            if not np.issubdtype(correlations_df["date"].dtype, np.integer):
+                # If not already datetime, convert
+                correlations_df["weekday"] = pd.to_datetime(correlations_df["date"]).dt.dayofweek
+            else:
+                correlations_df["weekday"] = correlations_df["date"]
+            weekday_groups = correlations_df.groupby("weekday")
+            for weekday, group in weekday_groups:
+                by_weekday[int(weekday)] = {
+                    'scalar': {
+                        "count": len(group),
+                        "win_rate": group["win"].mean(),
+                    },
+                    'series': {
+                        "pnl": group["pnl"].tolist(),
+                        "volume": group["volume"].tolist(),
+                        "time_distance": group["time_distance"].tolist(),
+                        "holding_time": group["holding_time"].tolist(),
+                    },
+                    
+                }
+        if by_weekday:
+            all_plot_data["by_weekday"] = by_weekday
 
     return all_plot_data
 
@@ -1368,7 +1382,7 @@ def analyse_trading_journal_df(df: pd.DataFrame) -> dict:
     timings['analyze_optimal_drawdown'] = time.perf_counter() - t5
 
     t6 = time.perf_counter()
-    plot_data = plot_results(correlations_df, time_peaks_df, sliding_window_df, daily_groups)
+    plot_data = plot_results(correlations_df, time_peaks_df, sliding_window_df, daily_groups, df)
     timings['plot_results'] = time.perf_counter() - t6
     
     clusters = analyze_clusters(df)

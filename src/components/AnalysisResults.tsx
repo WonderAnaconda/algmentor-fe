@@ -368,7 +368,7 @@ function RecommendationPlot({ type, analysis, plotData }: { type: string; analys
           autobinx: false // Disable auto-binning to use custom nbinsx
         }, ...(medianTrades && typeof medianTrades === 'number' ? [{
           x: [medianTrades],
-          y: [7], // Position at top of the specific bar (approximate height)
+          y: [0], // Position at top of the specific bar (approximate height)
           type: 'scatter',
           mode: 'markers',
           name: 'Median Recommendation',
@@ -1163,9 +1163,9 @@ export function AnalysisResults({ analysis, onReset, plotData }: AnalysisResults
                   <span className="w-3 h-3 bg-profit rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
                 </div>
                 <div>
-                  <p className="font-medium">Wait {Math.round(analysis.optimal_break_between_trades.minutes)} minutes between trades</p>
+                  <p className="font-medium">Wait about {Math.round(analysis.optimal_break_between_trades.minutes)} minutes between trades to maximise PnL</p>
                   <p className="text-sm text-black">
-                    This could improve your P&L by ${analysis.optimal_break_between_trades.pnl_improvement.toLocaleString()}
+                    This could improve your P&L by up to ${analysis.optimal_break_between_trades.pnl_improvement.toLocaleString()}
                   </p>
                 </div>
               </div>
@@ -1177,7 +1177,7 @@ export function AnalysisResults({ analysis, onReset, plotData }: AnalysisResults
                   <span className="w-3 h-3 bg-loss rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
                 </div>
                 <div>
-                  <p className="font-medium">Stop trading at {analysis.optimal_intraday_drawdown.percentage}% drawdown</p>
+                  <p className="font-medium">Stop trading at about {analysis.optimal_intraday_drawdown.percentage}% drawdown</p>
                   <p className="text-sm text-black">
                     {analysis.optimal_intraday_drawdown.explanation}
                   </p>
@@ -1205,7 +1205,7 @@ export function AnalysisResults({ analysis, onReset, plotData }: AnalysisResults
                   <span className="w-3 h-3 bg-primary rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
                 </div>
                 <div>
-                  <p className="font-medium">Limit to {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades per day</p>
+                  <p className="font-medium">Limit to about {Math.round(analysis.optimal_max_trades_per_day.median_trades_to_peak)} trades per day</p>
                   <p className="text-sm text-black">
                     This is when your cumulative P&L typically peaks
                   </p>
@@ -1219,9 +1219,9 @@ export function AnalysisResults({ analysis, onReset, plotData }: AnalysisResults
                   <span className="w-3 h-3 bg-profit rounded-full block" style={{ boxShadow: '0 0 0 2px #fff' }}></span>
                 </div>
                 <div>
-                  <p className="font-medium">Wait {Math.floor(analysis.optimal_trading_time_window.optimal_time_distance_minutes)}:{(analysis.optimal_trading_time_window.optimal_time_distance_minutes % 1 * 60).toFixed(0).padStart(2, '0')} between trades</p>
+                  <p className="font-medium">Wait about {Math.floor(analysis.optimal_trading_time_window.optimal_time_distance_minutes)}:{(analysis.optimal_trading_time_window.optimal_time_distance_minutes % 1 * 60).toFixed(0).padStart(2, '0')} between trades to maximise win rate</p>
                   <p className="text-sm text-black">
-                    This could improve your win rate by +{analysis.optimal_trading_time_window.win_rate_improvement.toFixed(1)}%
+                    This could improve your win rate by up to +{analysis.optimal_trading_time_window.win_rate_improvement.toFixed(1)}%
                   </p>
                 </div>
               </div>
