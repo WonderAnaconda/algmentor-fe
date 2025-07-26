@@ -1,7 +1,21 @@
 import React, { useRef, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  BarChart3, 
+  TrendingUp, 
+  Clock, 
+  Target,
+  Activity,
+  Calendar,
+  Zap,
+  Users
+} from 'lucide-react';
 // Radar chart dependencies
 import Chart from 'chart.js/auto';
+import { Chart as ChartJS, registerables } from 'chart.js';
+import 'chartjs-chart-box-and-violin-plot/build/Chart.BoxPlot.js';
+ChartJS.register(...registerables);
 
 interface ClusterData {
   count: number;
@@ -29,10 +43,11 @@ const statLabels: Record<string, string> = {
   ratio: 'Share',
   mean_pnl: 'Ø PnL',
   std_pnl: 'Std PnL',
-  mean_duration: 'Ø Duration (s)',
+  mean_duration: 'Ø Duration',
   mean_return_per_min: 'Ø PnL/min',
   mean_pause: 'Ø Pause',
   mean_hour: 'Ø Time',
+  win_rate: 'Win Rate',
 };
 
 const statFormat: Record<string, (v: number) => string> = {
@@ -68,6 +83,7 @@ const statFormat: Record<string, (v: number) => string> = {
     const minStr = minute.toString().padStart(2, '0');
     return `${hourStr}:${minStr}`;
   },
+  win_rate: v => (v * 100).toFixed(1) + '%',
 };
 
 const statKeys = [
@@ -79,6 +95,7 @@ const statKeys = [
   'mean_return_per_min',
   'mean_pause',
   'mean_hour',
+  'win_rate',
 ];
 
 function parseTags(interpretation?: string): string[] {
@@ -88,6 +105,10 @@ function parseTags(interpretation?: string): string[] {
     .map(s => s.trim())
     .map(s => s.replace(/\b\w/g, c => c.toUpperCase()));
 }
+
+// Remove WeekdayAnalysis and all related code from this file.
+// Remove byWeekday prop from ClusterAnalysis.
+// Only keep cluster/radar chart logic here.
 
 export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, interpretations }) => {
   // Convert clusters to array and sort by count descending
@@ -137,7 +158,7 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
     ];
     // Chart.js does not support per-axis max/min natively for radar charts.
     // So, normalize all radarStats to [0,1] for the radar chart.
-    const radarStats = ['mean_pnl', 'std_pnl', 'mean_duration', 'mean_return_per_min', 'mean_pause'];
+    const radarStats = ['mean_pnl', 'std_pnl', 'mean_duration', 'mean_return_per_min', 'mean_pause', 'win_rate'];
     const labels = radarStats.map(key => statLabels[key] + ' (norm)');
     const statMin: Record<string, number> = {};
     const statMax: Record<string, number> = {};
@@ -147,7 +168,7 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
       statMax[key] = Math.max(...values);
     });
     const datasets = clusterArr.map((cluster, idx) => ({
-      label: `Cluster #${cluster.id}`,
+      label: `Cluster ${String.fromCharCode(65 + Number(cluster.id))}`,
       data: radarStats.map(key => {
         const val = Number(cluster[key as keyof ClusterData]) || 0;
         const min = statMin[key];
@@ -191,21 +212,25 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
   }, [clusters]);
 
   return (
-    <section className="my-10">
-      <h2 className="text-2xl font-bold mb-6 text-primary">Trade Cluster Analysis</h2>
+    <section className="my-10 space-y-8 animate-fade-in">
+
+      {/* Radar Chart Card */}
+      <Card className="bg-gradient-card shadow-card">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <BarChart3 className="h-5 w-5 text-primary" />
+            Cluster Comparison Radar
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="w-full flex flex-col items-center">
+          <div className="w-full max-w-xl h-[340px] mx-auto">
+            <canvas ref={radarRef} width={400} height={340} />
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Cluster Cards */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        {/* Radar Chart Card */}
-        <Card className="col-span-1 md:col-span-2 lg:col-span-3 bg-slate-900/90 border border-blue-900 shadow-lg shadow-blue-900/20 rounded-xl flex flex-col items-center justify-center">
-          <CardHeader>
-            <CardTitle className="text-xl font-bold text-white drop-shadow mb-2">Cluster Comparison</CardTitle>
-          </CardHeader>
-          <CardContent className="w-full flex flex-col items-center">
-            <div className="w-full max-w-xl h-[340px] mx-auto">
-              <canvas ref={radarRef} width={400} height={340} />
-            </div>
-          </CardContent>
-        </Card>
-        {/* Cluster Cards */}
         {clusterArr.map(cluster => {
           const interp = interpretations?.[cluster.id] || '';
           const tags = parseTags(interp);
@@ -216,72 +241,164 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
           const shortRatio = cluster.direction_ratio.short || 0;
           // Determine card background and shadow based on mean PnL
           const isProfit = cluster.mean_pnl > 0;
-          const cardBg = isProfit
-            ? 'bg-[#0e2e1a]/90 shadow-lg shadow-green-900/30 border border-emerald-800'
-            : 'bg-[#23263a]/90 shadow-lg shadow-blue-900/30 border border-blue-900';
+          
           return (
-            <Card key={cluster.id} className={`relative ${cardBg} rounded-xl transition-all duration-300`}>
-              <CardHeader className="pb-2 flex flex-row items-start justify-between">
-                <div>
-                  <CardTitle className="text-xl font-bold text-white drop-shadow">Cluster #{cluster.id}</CardTitle>
-                  <div className="flex flex-wrap gap-2 mt-2">
-                    {tags.map(tag => (
-                      <span key={tag} className={`inline-block px-2 py-0.5 rounded font-semibold text-xs ${isProfit ? 'bg-emerald-900/60 text-[#7fffd4]' : 'bg-blue-900/60 text-blue-200'}`}>{tag}</span>
-                    ))}
+            <Card key={cluster.id} className="bg-gradient-card shadow-card hover-scale">
+              <CardHeader className="pb-2">
+                <div className="flex items-start justify-between">
+                  <div className="flex items-center gap-2">
+                    <Users className="h-5 w-5 text-primary" />
+                    <CardTitle className="text-xl font-bold">
+                      Cluster {String.fromCharCode(65 + Number(cluster.id))}
+                    </CardTitle>
                   </div>
+                  {mostCommonDay && (
+                    <Badge variant="outline" className="bg-primary/20 text-primary-background border-primary/30">
+                      {mostCommonDay}
+                    </Badge>
+                  )}
                 </div>
-                <div className="absolute right-4 top-4">
-                  <span className={`inline-block px-2 py-0.5 rounded font-bold tracking-wide shadow text-xs ${isProfit ? 'bg-emerald-700/90 text-white' : 'bg-blue-700/90 text-white'}`}>{mostCommonDay}</span>
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {tags.map(tag => (
+                    <span key={tag} className="inline-block px-2 py-0.5 rounded font-semibold text-xs bg-muted/20 text-muted-foreground border border-muted/30">
+                      {tag}
+                    </span>
+                  ))}
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {/* Direction Ratio Bar */}
-                  <div className="flex items-center gap-2">
-                    <span className="w-36 text-sm text-slate-300">Direction Ratio</span>
-                    <div className="flex-1 h-4 rounded overflow-hidden flex bg-slate-800/60">
-                      <div
-                        className="h-4"
-                        style={{
-                          width: `${longRatio * 100}%`,
-                          background: '#34d399', // emerald-400
-                          borderTopLeftRadius: 6,
-                          borderBottomLeftRadius: 6,
-                        }}
-                      />
-                      <div
-                        className="h-4"
-                        style={{
-                          width: `${shortRatio * 100}%`,
-                          background: '#334155', // slate-700
-                          borderTopRightRadius: 6,
-                          borderBottomRightRadius: 6,
-                        }}
-                      />
+                <div className="space-y-4">
+
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <Activity className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Trades</span>
+                      </div>
+                      <p className="text-lg font-bold">
+                        {statFormat.count(cluster.count)} 
+                        <span className="text-sm font-normal text-muted-foreground ml-1">
+                          ({statFormat.ratio(cluster.ratio)})
+                        </span>
+                      </p>
                     </div>
-                    <span className="w-14 text-right font-mono text-xs">
-                      <span className="text-emerald-300">{(longRatio * 100).toFixed(1)}%</span> / <span className="text-slate-300">{(shortRatio * 100).toFixed(1)}%</span>
-                    </span>
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3 text-muted-foreground" />
+                        <span className="text-xs text-muted-foreground">Avg Time</span>
+                      </div>
+                      <p className="text-sm font-semibold">{statFormat.mean_hour(cluster.mean_hour)}</p>
+                    </div>
                   </div>
-                  {/* Stats */}
-                  {statKeys.map(key => (
-                    <div key={key} className="flex items-center gap-2">
-                      <span className="w-36 text-sm text-slate-300">{statLabels[key]}</span>
-                      <span className="min-w-[70px] text-right font-mono text-white">{statFormat[key](cluster[key as keyof ClusterData] as number)}</span>
-                      <div className="flex-1 h-3 rounded overflow-hidden bg-slate-800/60 ml-4">
+
+                  {/* Detailed Stats */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <BarChart3 className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Performance Metrics</span>
+                    </div>
+                    <div className="space-y-2">
+                      {['mean_pnl', 'mean_return_per_min', 'std_pnl', 'mean_duration', 'mean_pause', 'win_rate'].map(key => {
+                        const value = cluster[key as keyof ClusterData] as number;
+                        const isPnlMetric = key === 'mean_pnl' || key === 'mean_return_per_min';
+                        
+                        if (isPnlMetric) {
+                          // Calculate zero point for bidirectional bars
+                          const allValues = clusterArr.map(c => c[key as keyof ClusterData] as number);
+                          const minValue = Math.min(...allValues);
+                          const maxValue = Math.max(...allValues);
+                          const range = maxValue - minValue;
+                          const zeroPoint = range > 0 ? (0 - minValue) / range : 0.5;
+                          const normalizedValue = range > 0 ? (value - minValue) / range : 0.5;
+                          
+                          const isPositive = value >= 0;
+                          const barWidth = Math.abs(normalizedValue - zeroPoint);
+                          const barPosition = isPositive ? zeroPoint : normalizedValue;
+                          
+                          return (
+                            <div key={key} className="flex items-center gap-2">
+                              <span className="w-20 text-xs text-muted-foreground">{statLabels[key]}</span>
+                              <span className={`min-w-[60px] text-right font-mono text-xs font-semibold ${isPositive ? 'text-profit' : 'text-loss'}`}>
+                                {statFormat[key](value)}
+                              </span>
+                              <div className="flex-1 h-2 rounded overflow-hidden bg-muted/20 relative">
+                                {/* Zero point indicator - white blob */}
+                                <div 
+                                  className="absolute top-1/2 left-0 w-2 h-2 bg-white rounded-full transform -translate-y-1/2 -translate-x-1 z-10"
+                                  style={{ left: `${zeroPoint * 100}%` }}
+                                />
+                                {/* Bar */}
+                                <div
+                                  className="h-2 rounded absolute"
+                                  style={{
+                                    left: `${barPosition * 100}%`,
+                                    width: `${barWidth * 100}%`,
+                                    background: isPositive ? '#34d399' : '#f87171',
+                                    transition: 'width 0.3s',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        } else {
+                          // Regular progress bar for non-PnL metrics
+                          return (
+                            <div key={key} className="flex items-center gap-2">
+                              <span className="w-20 text-xs text-muted-foreground">{statLabels[key]}</span>
+                              <span className="min-w-[60px] text-right font-mono text-xs font-semibold">
+                                {statFormat[key](value)}
+                              </span>
+                              <div className="flex-1 h-2 rounded overflow-hidden bg-muted/20">
+                                <div
+                                  className="h-2 rounded"
+                                  style={{
+                                    width: `${Math.round(normalize(key, value) * 100)}%`,
+                                    background: '#3b82f6',
+                                    transition: 'width 0.3s',
+                                  }}
+                                />
+                              </div>
+                            </div>
+                          );
+                        }
+                      })}
+                    </div>
+                  </div>
+
+                  {/* Direction Ratio Bar */}
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-2">
+                      <Target className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm font-medium text-muted-foreground">Direction Ratio</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="flex-1 h-4 rounded overflow-hidden flex bg-muted/20">
                         <div
-                          className="h-3 rounded"
+                          className="h-4"
                           style={{
-                            width: `${Math.round(normalize(key, cluster[key as keyof ClusterData] as number) * 100)}%`,
-                            background: key === 'mean_pnl'
-                              ? (isProfit ? '#34d399' : '#ba5f72') // emerald-400 or blue-500
-                              : (key === 'count' || key === 'ratio' ? '#ccc' : '#3b82f6'), // blue-500
-                            transition: 'width 0.3s',
+                            width: `${longRatio * 100}%`,
+                            background: '#d3d3d3', // emerald-400
+                            borderTopLeftRadius: 6,
+                            borderBottomLeftRadius: 6,
+                          }}
+                        />
+                        <div
+                          className="h-4"
+                          style={{
+                            width: `${shortRatio * 100}%`,
+                            background: '#334155', // slate-700
+                            borderTopRightRadius: 6,
+                            borderBottomRightRadius: 6,
                           }}
                         />
                       </div>
+                      <span className="w-14 text-right font-mono text-xs">
+                        <span className="text-slate-300">{(longRatio * 100).toFixed(1)}%</span> / <span className="text-slate-500">{(shortRatio * 100).toFixed(1)}%</span>
+                      </span>
                     </div>
-                  ))}
+                  </div>
+
                 </div>
               </CardContent>
             </Card>

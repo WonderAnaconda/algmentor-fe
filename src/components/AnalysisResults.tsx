@@ -778,15 +778,6 @@ export function AnalysisResults({ analysis, onReset, plotData }: AnalysisResults
 
   return (
     <div className="space-y-8 animate-fade-in">
-      {/* Header */}
-      <div className="text-center space-y-4">
-        <h1 className="text-3xl font-bold text-primary">
-          Your Trading Optimization Analysis
-        </h1>
-        <p className="text-muted-foreground max-w-2xl mx-auto">
-          AI-powered analysis of your trading patterns with actionable optimization recommendations
-        </p>
-      </div>
 
       {/* Plot Toggle */}
       <div className="flex justify-center items-center space-x-2">

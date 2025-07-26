@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { FileUpload } from '@/components/ui/file-upload';
 import { TradingDashboard } from '@/components/TradingDashboard';
 import { AnalysisResults } from '@/components/AnalysisResults';
+import { SmartPageBreakPDF } from '@/components/SmartPageBreakPDF';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { LogOut, TrendingUp, Upload, AlertCircle, Menu } from 'lucide-react';
@@ -21,6 +22,10 @@ import {
   DropdownMenuItem
 } from '@/components/ui/dropdown-menu';
 import { ClusterAnalysis } from '@/components/ClusterAnalysis';
+import WeekdayAnalysis from '@/components/WeekdayAnalysis';
+import Navbar from '@/components/Navbar';
+import { AnalysisDock } from '@/components/AnalysisDock';
+import { GradientBanner } from '@/components/GradientBanner';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -92,6 +97,51 @@ export default function Dashboard() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+
+  // Create refs for PDF export and section navigation
+  const analysisResultsRef = useRef<HTMLDivElement>(null);
+  const clusterAnalysisRef = useRef<HTMLDivElement>(null);
+  const weekdayAnalysisRef = useRef<HTMLDivElement>(null);
+  const [activeSection, setActiveSection] = useState<string>('analysis');
+
+  // Scroll listener to update active section
+  useEffect(() => {
+    if (!showResults || !analysisResult) return;
+
+    const handleScroll = () => {
+      const scrollPosition = window.scrollY + 100; // Offset for better detection
+      
+      const sections = [
+        { id: 'analysis', ref: analysisResultsRef },
+        { id: 'clusters', ref: clusterAnalysisRef },
+        { id: 'weekday', ref: weekdayAnalysisRef }
+      ].filter(section => {
+        // Only include sections that exist
+        switch (section.id) {
+          case 'analysis':
+            return !!analysisResult.recommendations;
+          case 'clusters':
+            return !!analysisResult.clusters;
+          case 'weekday':
+            return !!analysisResult.data?.by_weekday;
+          default:
+            return false;
+        }
+      });
+
+      for (let i = sections.length - 1; i >= 0; i--) {
+        const section = sections[i];
+        const element = section.ref.current;
+        if (element && element.offsetTop <= scrollPosition) {
+          setActiveSection(section.id);
+          break;
+        }
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [showResults, analysisResult]);
 
   // Preload Pyodide and packages on mount
   useEffect(() => {
@@ -259,65 +309,36 @@ export default function Dashboard() {
     navigate('/');
   };
 
+  const handleSectionSelect = (sectionId: string) => {
+    setActiveSection(sectionId);
+    let targetRef: React.RefObject<HTMLDivElement> | null = null;
+    
+    switch (sectionId) {
+      case 'analysis':
+        targetRef = analysisResultsRef;
+        break;
+      case 'clusters':
+        targetRef = clusterAnalysisRef;
+        break;
+      case 'weekday':
+        targetRef = weekdayAnalysisRef;
+        break;
+    }
+    
+    if (targetRef?.current) {
+      targetRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'start' 
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b border-border bg-card/50 backdrop-blur">
-        <div className="container mx-auto px-6 py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-3 hover:opacity-80 transition-opacity">
-              <div className="p-2 rounded-lg bg-gradient-primary">
-                <TrendingUp className="h-5 w-5 text-primary-foreground" />
-              </div>
-              <div>
-                <h1 className="font-bold text-lg">AlgMentor</h1>
-                <p className="text-xs text-muted-foreground">Trading Performance Dashboard</p>
-              </div>
-            </Link>
-            {/* Desktop AuthStatus */}
-            <div className="hidden md:flex items-center gap-2">
-              <AuthStatus />
-            </div>
-            {/* Hamburger menu for mobile */}
-            <div className="flex md:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" aria-label="Open menu">
-                    <Menu className="h-6 w-6" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="min-w-[160px] flex flex-col space-y-2">
-                  <DropdownMenuItem asChild>
-                    {isLoggedIn ? (
-                      <Button
-                        className="flex items-center justify-center w-full min-h-[44px] px-4 bg-gradient-primary shadow-glow font-semibold"
-                        size="sm"
-                        onClick={async () => {
-                          await supabase.auth.signOut();
-                          navigate('/');
-                        }}
-                      >
-                        Logout
-                      </Button>
-                    ) : (
-                      <Button
-                        className="flex items-center justify-center w-full min-h-[44px] px-4 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
-                        size="sm"
-                        onClick={() => navigate('/login')}
-                      >
-                        Sign In
-                      </Button>
-                    )}
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-          </div>
-        </div>
-      </header>
+      <Navbar />
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto px-14 py-8">
         <div className="space-y-8">
           {/* Welcome Section */}
           {!showResults && (
@@ -436,25 +457,91 @@ export default function Dashboard() {
 
           {showResults && analysisResult && analysisResult.recommendations && analysisResult.data && (
             <>
-              <AnalysisResults
-                analysis={analysisResult.recommendations}
-                plotData={analysisResult.data}
-                onReset={() => {
-                  setHasUploadedFile(false);
-                  setAnalysisError(null);
-                  setAnalysisData(null);
-                  setAnalysisResult(null);
-                  setShowResults(false);
-                  setUploadProgress(0);
-                }}
-              />
-              {/* Cluser Analysis Section */}
-              {analysisResult.clusters && (
-                <ClusterAnalysis
-                  clusters={analysisResult.clusters.data}
-                  interpretations={analysisResult.clusters.interpretation}
+              <GradientBanner className="py-8">
+                <div className="container mx-auto">
+                  <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
+                    <div className="text-center space-y-4">
+                      <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent leading-tight pb-1">
+                        Analysis Results
+                      </h2>
+                      <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                        Performance metrics and personalized recommendations based on your trading patterns.
+                      </p>
+                    </div>
+                  </Card>
+                </div>
+              </GradientBanner>
+              
+              <div ref={analysisResultsRef}>
+                <AnalysisResults
+                  analysis={analysisResult.recommendations}
+                  plotData={analysisResult.data}
+                  onReset={() => {
+                    setHasUploadedFile(false);
+                    setAnalysisError(null);
+                    setAnalysisData(null);
+                    setAnalysisResult(null);
+                    setShowResults(false);
+                    setUploadProgress(0);
+                  }}
                 />
+              </div>
+              
+              {/* Cluster Analysis Section */}
+              {analysisResult.clusters && (
+                <div ref={clusterAnalysisRef}>
+                  <GradientBanner className="py-8 mt-20">
+                    <div className="container mx-auto">
+                      <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
+                        <div className="text-center space-y-4">
+                          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent leading-tight pb-1">
+                            Cluster Analysis
+                          </h2>
+                          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                            AI-powered clustering of your trading patterns to identify distinct behavioral groups.
+                          </p>
+                        </div>
+                      </Card>
+                    </div>
+                  </GradientBanner>
+                  <ClusterAnalysis
+                    clusters={analysisResult.clusters.data}
+                    interpretations={analysisResult.clusters.interpretation}
+                  />
+                </div>
               )}
+              
+              {/* Weekday Analysis Section */}
+              {analysisResult.data?.by_weekday && (
+                <div ref={weekdayAnalysisRef}>
+                  <GradientBanner className="py-8 mt-20">
+                    <div className="container mx-auto">
+                      <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
+                        <div className="text-center space-y-4">
+                          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent leading-tight pb-1">
+                            Weekday Analysis
+                          </h2>
+                          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                            Day-of-week performance patterns and optimal trading timing insights.
+                          </p>
+                        </div>
+                      </Card>
+                    </div>
+                  </GradientBanner>
+                  <WeekdayAnalysis byWeekday={analysisResult.data.by_weekday} />
+                </div>
+              )}
+              
+              {/* Export to PDF Button */}
+              <div className="flex justify-center mt-8">
+                <SmartPageBreakPDF
+                  elementRef={analysisResultsRef}
+                  filename={`trading-analysis-${new Date().toISOString().split('T')[0]}.pdf`}
+                  title="Export to PDF"
+                  hasCharts={true}
+                />
+              </div>
+              
               {/* Action buttons */}
               <div className="flex justify-center gap-4 mt-4">
                 {/* Debug: Download JSON button */}
@@ -475,6 +562,15 @@ export default function Dashboard() {
                   </button>
                 )}
               </div>
+              
+              {/* Analysis Dock */}
+              <AnalysisDock
+                onSectionSelect={handleSectionSelect}
+                activeSection={activeSection}
+                hasAnalysisResults={!!analysisResult.recommendations}
+                hasClusterResults={!!analysisResult.clusters}
+                hasWeekdayResults={!!analysisResult.data?.by_weekday}
+              />
             </>
           )}
 
