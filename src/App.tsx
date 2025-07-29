@@ -10,7 +10,6 @@ import DemoAnalysis from "./pages/DemoAnalysis";
 import NotFound from "./pages/NotFound";
 import Academy from "./pages/Academy";
 import ArticleDetail from "./pages/ArticleDetail";
-
 const queryClient = new QueryClient();
 
 const App = () => (

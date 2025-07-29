@@ -1,5 +1,5 @@
 import React from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import AuthStatus from '@/components/AuthStatus';
 import { landingCopy } from '../landingCopy';
@@ -14,7 +14,11 @@ import { supabase } from '@/integrations/supabase/client';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [isLoggedIn, setIsLoggedIn] = React.useState(false);
+  
+  // Check if we're on the dashboard page
+  const isOnDashboard = location.pathname === '/dashboard';
 
   React.useEffect(() => {
     supabase.auth.getUser().then(({ data }) => {
@@ -47,18 +51,21 @@ const Navbar = () => {
               <Link to="/academy" className="text-base font-medium text-muted-foreground hover:text-primary transition-colors">
                 Academy
               </Link>
+
               {/* Add more nav entries here as needed */}
             </nav>
           </div>
           <div className="flex items-center gap-4">
             {/* Desktop buttons */}
             <div className="hidden md:flex items-center gap-4">
-              <Button onClick={() => {
-                if (isLoggedIn) navigate('/dashboard');
-                else navigate('/login');
-              }} className="bg-gradient-primary shadow-glow">
-                {landingCopy.nav.getStarted}
-              </Button>
+              {!isOnDashboard && (
+                <Button onClick={() => {
+                  if (isLoggedIn) navigate('/dashboard');
+                  else navigate('/login');
+                }} className="bg-gradient-primary shadow-glow">
+                  {landingCopy.nav.getStarted}
+                </Button>
+              )}
               <AuthStatus />
             </div>
             {/* Hamburger menu for mobile */}
@@ -70,14 +77,17 @@ const Navbar = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="min-w-[160px] flex flex-col space-y-2">
-                  <DropdownMenuItem asChild>
-                    <Button className="flex items-center justify-center w-full min-h-[44px] px-4 bg-gradient-primary shadow-glow font-semibold" size="sm" onClick={() => {
-                      if (isLoggedIn) navigate('/dashboard');
-                      else navigate('/login');
-                    }}>
-                      {landingCopy.nav.getStarted}
-                    </Button>
-                  </DropdownMenuItem>
+
+                  {!isOnDashboard && (
+                    <DropdownMenuItem asChild>
+                      <Button className="flex items-center justify-center w-full min-h-[44px] px-4 bg-gradient-primary shadow-glow font-semibold" size="sm" onClick={() => {
+                        if (isLoggedIn) navigate('/dashboard');
+                        else navigate('/login');
+                      }}>
+                        {landingCopy.nav.getStarted}
+                      </Button>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuItem asChild>
                     {isLoggedIn ? (
                       <Button

@@ -8,7 +8,7 @@ export const landingCopy = {
       logout: "Logout"
     },
     hero: {
-      heading: "Fix What’s Holding Back Your Trades",
+      heading: "Reveal What Works—Refine What Wins",
       description:
         "For scalpers and day traders. Upload your trading history and get instant, personalized suggestions to improve how you trade — based on your actual behavior, not guesswork.",
       startAnalyzing: "Start Free Analysis",

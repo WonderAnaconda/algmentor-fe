@@ -23,6 +23,7 @@ interface AnalysisDockProps {
   hasAnalysisResults: boolean;
   hasClusterResults: boolean;
   hasWeekdayResults: boolean;
+  hasSessionAssistantResults: boolean;
 }
 
 const dockItems: DockItem[] = [
@@ -46,6 +47,13 @@ const dockItems: DockItem[] = [
     icon: Calendar,
     color: '#06b6d4',
     description: 'Day-of-week performance patterns'
+  },
+  {
+    id: 'session-assistant',
+    label: 'Session Assistant',
+    icon: TrendingUp,
+    color: '#10b981',
+    description: 'Real-time trading session guidance'
   }
 ];
 
@@ -54,7 +62,8 @@ export const AnalysisDock: React.FC<AnalysisDockProps> = ({
   activeSection,
   hasAnalysisResults,
   hasClusterResults,
-  hasWeekdayResults
+  hasWeekdayResults,
+  hasSessionAssistantResults
 }) => {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
@@ -63,6 +72,7 @@ export const AnalysisDock: React.FC<AnalysisDockProps> = ({
     if (hasAnalysisResults) items.push(dockItems[0]);
     if (hasClusterResults) items.push(dockItems[1]);
     if (hasWeekdayResults) items.push(dockItems[2]);
+    if (hasSessionAssistantResults) items.push(dockItems[3]);
     return items;
   };
 

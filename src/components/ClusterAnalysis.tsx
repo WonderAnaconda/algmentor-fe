@@ -28,11 +28,23 @@ interface ClusterData {
   mean_hour: number;
   most_common_day: number;
   direction_ratio: Record<string, number>;
+  win_rate: number;
+}
+
+interface ClusterScatterPoint {
+  x: number;
+  y: number;
+  cluster: number;
+  pnl: number;
+  duration: number;
+  return_per_min: number;
 }
 
 interface ClusterAnalysisProps {
   clusters: Record<string, ClusterData>;
   interpretations?: Record<string, string>;
+  scatterData?: ClusterScatterPoint[];
+  method?: string;
 }
 
 const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
@@ -110,7 +122,7 @@ function parseTags(interpretation?: string): string[] {
 // Remove byWeekday prop from ClusterAnalysis.
 // Only keep cluster/radar chart logic here.
 
-export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, interpretations }) => {
+export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, interpretations, scatterData, method }) => {
   // Convert clusters to array and sort by count descending
   const clusterArr = Object.entries(clusters)
     .map(([id, data]) => ({ id, ...data }))
@@ -136,19 +148,19 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
   // Radar chart setup
   const radarRef = useRef<HTMLCanvasElement>(null);
   useEffect(() => {
-    if (!radarRef.current) return;
+    if (!radarRef.current || !scatterData || scatterData.length === 0) return;
     const ctx = radarRef.current.getContext('2d');
     if (!ctx) return;
     // Clean up previous chart
     if ((window as any)._clusterRadarChart) {
       (window as any)._clusterRadarChart.destroy();
     }
+    
     // Color palette for distinct cluster lines
     const palette = [
       '#34d399', // emerald
       '#3b82f6', // blue
       '#f59e42', // orange
-      // '#eab308', // yellow
       '#a78bfa', // purple
       '#f472b6', // pink
       '#38bdf8', // sky
@@ -156,34 +168,76 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
       '#10b981', // green
       '#6366f1', // indigo
     ];
+    
+    // Get all unique cluster IDs from scatter data (excluding noise -1)
+    const allClusterIds = [...new Set(scatterData.map(point => point.cluster).filter(id => id !== -1))].sort();
+    
     // Chart.js does not support per-axis max/min natively for radar charts.
     // So, normalize all radarStats to [0,1] for the radar chart.
     const radarStats = ['mean_pnl', 'std_pnl', 'mean_duration', 'mean_return_per_min', 'mean_pause', 'win_rate'];
     const labels = radarStats.map(key => statLabels[key] + ' (norm)');
+    
+    // Calculate stats for each cluster from scatter data
+    const clusterStats: Record<number, any> = {};
+    
+    allClusterIds.forEach(clusterId => {
+      const clusterPoints = scatterData.filter(point => point.cluster === clusterId);
+      if (clusterPoints.length === 0) return;
+      
+      // Calculate basic stats from scatter data
+      const pnls = clusterPoints.map(p => p.pnl);
+      const durations = clusterPoints.map(p => p.duration);
+      const returnsPerMin = clusterPoints.map(p => p.return_per_min);
+      
+      clusterStats[clusterId] = {
+        id: clusterId,
+        count: clusterPoints.length,
+        mean_pnl: pnls.reduce((a, b) => a + b, 0) / pnls.length,
+        std_pnl: Math.sqrt(pnls.reduce((sq, n) => sq + Math.pow(n - pnls.reduce((a, b) => a + b, 0) / pnls.length, 2), 0) / pnls.length),
+        mean_duration: durations.reduce((a, b) => a + b, 0) / durations.length,
+        mean_return_per_min: returnsPerMin.reduce((a, b) => a + b, 0) / returnsPerMin.length,
+        mean_pause: 0, // Not available in scatter data, use 0
+        win_rate: pnls.filter(p => p > 0).length / pnls.length, // Calculate win rate from PnL
+      };
+    });
+    
+    // Get min/max values for normalization
     const statMin: Record<string, number> = {};
     const statMax: Record<string, number> = {};
     radarStats.forEach(key => {
-      const values = clusterArr.map(c => Number(c[key as keyof ClusterData]) || 0);
-      statMin[key] = Math.min(...values);
-      statMax[key] = Math.max(...values);
+      const values = Object.values(clusterStats).map(c => Number(c[key]) || 0);
+      if (values.length > 0) {
+        statMin[key] = Math.min(...values);
+        statMax[key] = Math.max(...values);
+      } else {
+        statMin[key] = 0;
+        statMax[key] = 1;
+      }
     });
-    const datasets = clusterArr.map((cluster, idx) => ({
-      label: `Cluster ${String.fromCharCode(65 + Number(cluster.id))}`,
-      data: radarStats.map(key => {
-        const val = Number(cluster[key as keyof ClusterData]) || 0;
-        const min = statMin[key];
-        const max = statMax[key];
-        if (max === min) return 0.5;
-        return (val - min) / (max - min);
-      }),
-      fill: false,
-      borderColor: palette[idx % palette.length],
-      backgroundColor: 'rgba(59,130,246,0.08)',
-      pointBackgroundColor: palette[idx % palette.length],
-      pointBorderColor: '#fff',
-      pointRadius: 3,
-      tension: 0.2,
-    }));
+    
+    const datasets = allClusterIds.map((clusterId, idx) => {
+      const cluster = clusterStats[clusterId];
+      if (!cluster) return null;
+      
+      return {
+        label: `Cluster ${String.fromCharCode(65 + clusterId)}`,
+        data: radarStats.map(key => {
+          const val = Number(cluster[key]) || 0;
+          const min = statMin[key];
+          const max = statMax[key];
+          if (max === min) return 0.5;
+          return (val - min) / (max - min);
+        }),
+        fill: false,
+        borderColor: palette[clusterId % palette.length],
+        backgroundColor: 'rgba(59,130,246,0.08)',
+        pointBackgroundColor: palette[clusterId % palette.length],
+        pointBorderColor: '#fff',
+        pointRadius: 3,
+        tension: 0.2,
+      };
+    }).filter(Boolean);
+    
     (window as any)._clusterRadarChart = new Chart(ctx, {
       type: 'radar',
       data: { labels, datasets },
@@ -209,22 +263,175 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
     return () => {
       (window as any)._clusterRadarChart?.destroy();
     };
-  }, [clusters]);
+  }, [scatterData]);
+
+  // Scatter plot setup
+  const scatterRef = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    if (!scatterRef.current || !scatterData || scatterData.length === 0) return;
+    const ctx = scatterRef.current.getContext('2d');
+    if (!ctx) return;
+    // Clean up previous chart
+    if ((window as any)._clusterScatterChart) {
+      (window as any)._clusterScatterChart.destroy();
+    }
+
+    // Color palette for clusters (same as scatter plot)
+    const palette = [
+      '#34d399', // emerald
+      '#3b82f6', // blue
+      '#f59e42', // orange
+      '#a78bfa', // purple
+      '#f472b6', // pink
+      '#38bdf8', // sky
+      '#f87171', // red
+      '#10b981', // green
+      '#6366f1', // indigo
+    ];
+
+    // Group data by cluster
+    const clusterGroups: Record<number, ClusterScatterPoint[]> = {};
+    scatterData.forEach(point => {
+      if (!clusterGroups[point.cluster]) {
+        clusterGroups[point.cluster] = [];
+      }
+      clusterGroups[point.cluster].push(point);
+    });
+
+    // Create datasets for each cluster
+    const datasets = Object.entries(clusterGroups).map(([clusterId, points]) => {
+      const clusterNum = Number(clusterId);
+      const isNoise = clusterNum === -1;
+      
+      let label, backgroundColor, borderColor;
+      
+      if (isNoise) {
+        label = 'Noise Points';
+        backgroundColor = '#6b7280'; // grey
+        borderColor = '#4b5563';
+      } else {
+        // Simple consistent naming: Cluster 0=A, 1=B, 2=C, etc.
+        const clusterLetter = String.fromCharCode(65 + clusterNum);
+        label = `Cluster ${clusterLetter}`;
+        backgroundColor = palette[clusterNum % palette.length] + '80'; // Add transparency
+        borderColor = palette[clusterNum % palette.length];
+      }
+
+      return {
+        label,
+        data: points.map(point => ({
+          x: point.x,
+          y: point.y,
+          pnl: point.pnl,
+          duration: point.duration,
+          return_per_min: point.return_per_min
+        })),
+        backgroundColor,
+        borderColor,
+        borderWidth: 1,
+        pointRadius: isNoise ? 2 : 4, // Smaller points for noise
+        pointHoverRadius: isNoise ? 4 : 6,
+      };
+    });
+
+    (window as any)._clusterScatterChart = new Chart(ctx, {
+      type: 'scatter',
+      data: { datasets },
+      options: {
+        plugins: {
+          legend: { display: true, position: 'top', labels: { color: '#fff' } },
+          title: { 
+            display: true, 
+            text: `${method?.toUpperCase() || 'DIMENSIONALITY REDUCTION'} - Trade Clusters`,
+            color: '#fff',
+            font: { size: 16 }
+          },
+          tooltip: {
+            callbacks: {
+              label: (context: any) => {
+                const point = context.raw;
+                return [
+                  `Cluster: ${context.dataset.label}`,
+                  `PnL: ${point.pnl.toFixed(2)}`,
+                  `Duration: ${(point.duration / 60).toFixed(1)} min`,
+                  `Return/min: ${point.return_per_min.toFixed(2)}`
+                ];
+              }
+            }
+          }
+        },
+        scales: {
+          x: {
+            title: {
+              display: true,
+              text: `${method?.toUpperCase() || 'X'} Component`,
+              color: '#fff'
+            },
+            grid: { color: '#334155' },
+            ticks: { color: '#fff' }
+          },
+          y: {
+            title: {
+              display: true,
+              text: `${method?.toUpperCase() || 'Y'} Component`,
+              color: '#fff'
+            },
+            grid: { color: '#334155' },
+            ticks: { color: '#fff' }
+          }
+        },
+        responsive: true,
+        maintainAspectRatio: false,
+      },
+    });
+    return () => {
+      (window as any)._clusterScatterChart?.destroy();
+    };
+  }, [scatterData, method, clusters]);
+
+  // Color palette for clusters (same as scatter plot)
+  const palette = [
+    '#34d399', // emerald
+    '#3b82f6', // blue
+    '#f59e42', // orange
+    '#a78bfa', // purple
+    '#f472b6', // pink
+    '#38bdf8', // sky
+    '#f87171', // red
+    '#10b981', // green
+    '#6366f1', // indigo
+  ];
 
   return (
     <section className="my-10 space-y-8 animate-fade-in">
 
-      {/* Radar Chart Card */}
+      {/* Combined Radar Chart and Scatter Plot Card */}
       <Card className="bg-gradient-card shadow-card">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <BarChart3 className="h-5 w-5 text-primary" />
-            Cluster Comparison Radar
+            Cluster Analysis Visualizations
           </CardTitle>
         </CardHeader>
-        <CardContent className="w-full flex flex-col items-center">
-          <div className="w-full max-w-xl h-[340px] mx-auto">
-            <canvas ref={radarRef} width={400} height={340} />
+        <CardContent className="w-full">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Radar Chart */}
+            <div className="flex flex-col items-center">
+              <h3 className="text-lg font-semibold mb-4 text-center">Cluster Comparison Radar</h3>
+              <div className="w-full max-w-md h-[340px]">
+                <canvas ref={radarRef} width={400} height={340} />
+              </div>
+            </div>
+            
+            {/* 2D Scatter Plot */}
+            {scatterData && scatterData.length > 0 && (
+              <div className="flex flex-col items-center">
+                <h3 className="text-lg font-semibold mb-4 text-center">2D Cluster Visualization</h3>
+                <div className="w-full max-w-md h-[340px]">
+                  <canvas ref={scatterRef} width={400} height={340} />
+                </div>
+              </div>
+            )}
           </div>
         </CardContent>
       </Card>
@@ -243,13 +450,19 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
           const isProfit = cluster.mean_pnl > 0;
           
           return (
-            <Card key={cluster.id} className="bg-gradient-card shadow-card hover-scale">
+            // <Card key={cluster.id} className={`bg-gradient-card hover-scale ${isProfit ? 'shadow-green-pnl' : 'shadow-red-pnl'}`}>
+            <Card key={cluster.id} className="bg-gradient-card hover-scale shadow-green-pnl">
               <CardHeader className="pb-2">
                 <div className="flex items-start justify-between">
                   <div className="flex items-center gap-2">
                     <Users className="h-5 w-5 text-primary" />
-                    <CardTitle className="text-xl font-bold">
-                      Cluster {String.fromCharCode(65 + Number(cluster.id))}
+                    <CardTitle 
+                      className="text-xl font-bold"
+                      style={{ 
+                        color: palette[(Number(cluster.id) - 1) % palette.length] 
+                      }}
+                    >
+                      Cluster {String.fromCharCode(65 + Number(cluster.id) - 1)}
                     </CardTitle>
                   </div>
                   {mostCommonDay && (
@@ -407,4 +620,8 @@ export const ClusterAnalysis: React.FC<ClusterAnalysisProps> = ({ clusters, inte
       </div>
     </section>
   );
-}; 
+};
+
+// Add the following CSS to your global styles (e.g., App.css or a relevant CSS/SCSS file):
+// .shadow-green-pnl { box-shadow: 0 4px 24px 0 rgba(52, 211, 153, 0.12) !important; }
+// .shadow-red-pnl { box-shadow: 0 4px 24px 0 rgba(248, 113, 113, 0.12) !important; }

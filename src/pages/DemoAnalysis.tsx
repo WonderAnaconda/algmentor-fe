@@ -105,7 +105,7 @@ export default function DemoAnalysisPage() {
       </header>
 
       {/* Main Content */}
-      <main className="container mx-auto px-6 py-8">
+      <main className="container mx-auto pl-14 pr-6 py-8">
         <DemoAnalysis />
       </main>
     </div>

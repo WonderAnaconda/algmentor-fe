@@ -186,6 +186,49 @@ export const articles: Article[] = [
     <p>Forget being right. Get good at doing the right thing, no matter how it feels. That’s how you stop trading like everyone else—and start trading like someone who wins.</p>
   </article>
   `
-}
+ },
+ {
+  slug: "hormones-profit-scalping",
+  title: "What Winning a Scalping Trade Does to Your Hormones",
+  description: "Explore the science behind why making money in scalping feels so addictive—and how your brain’s reward chemicals can lead you to overconfidence, risk addiction, and ultimately, self-sabotage.",
+  image: "/algmentor-fe/images/hormones_trading.png",
+  publishedAt: "2025-07-28",
+  readingTime: "8 min read",
+  html: `
+  <article>
+    <p>Every tick in your favor triggers a chemical cascade that most traders never even notice. Make money in scalping, and your brain rewards you with a cocktail of hormones designed for survival, not rational decision-making.</p>
+    
+    <h2>Dopamine: The Hit That Hooks You</h2>
+    <p>Score a win, and dopamine floods your system. It’s the same neurotransmitter that powers gambling, social media, and drug addiction. In trading, this spike makes you crave more action—clouding judgment, fueling revenge trades, and making every tick feel personal.</p>
 
+    <h2>Testosterone: The Winner Effect</h2>
+    <p>Land a series of successful scalps and testosterone rises. Studies on traders (see Coates & Herbert, 2008) show winning streaks spike testosterone, boosting confidence and risk tolerance. That can help in the short run, but also pushes you toward bigger, bolder trades—and greater risk of a crash.</p>
+
+    <h2>Cortisol: Stress Drops, Caution Fades</h2>
+    <p>Profitable trades lower cortisol, the stress hormone. Less anxiety feels good, but it’s a trap: reduced caution can lead you to take setups you’d normally avoid, or risk more after a win. Overconfidence and lower stress mean less restraint—prime conditions for the next big loss.</p>
+
+    <h2>Adrenaline: The Rush</h2>
+    <p>Scalping is fast and high stakes. The adrenaline rush sharpens your focus, but too much over time burns you out. Wins reinforce the cycle, keeping you hooked on action over discipline.</p>
+
+    <h2>The Hidden Cycle: How Hormones Shape Your Edge—and Your Downfall</h2>
+    <ul>
+      <li><b>Win → Dopamine/Testosterone up → Feels good → Trade more.</b></li>
+      <li><b>Trade more → Caution drops (cortisol down) → Risk increases.</b></li>
+      <li><b>Lose → Dopamine crash → Chase losses.</b></li>
+      <li><b>Repeat. Spiral.</b></li>
+    </ul>
+
+    <h2>How to Break the Cycle</h2>
+    <ul>
+      <li><b>Set strict rules before trading. Never adjust risk size after a win.</b></li>
+      <li><b>Use cool-downs after profits—force a pause to reset hormones.</b></li>
+      <li><b>Journal how you feel after each trade. If you notice increased confidence or urgency, step away.</b></li>
+      <li><b>Remind yourself: the market punishes emotional trading, not bad luck.</b></li>
+    </ul>
+    <p>Recognize the biochemical game behind your urge to keep trading. Every win feels like skill. Most of it is brain chemistry, and it’s built to make you lose. Outsmart your own biology—or you’ll be just another trader feeding the machine.</p>
+
+    <p style="font-size:0.9em;color:#666;">References: Coates JM, Herbert J (2008). Endogenous steroids and financial risk taking on a London trading floor. <i>PNAS</i> 105(16):6167-6172.</p>
+  </article>
+  `
+ },
 ]; 

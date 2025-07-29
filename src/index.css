@@ -150,3 +150,7 @@ input, select, textarea {
 .immediate-loading {
   animation: immediate-fade-in 0.1s ease-out;
 }
+
+.shadow-card {
+  box-shadow: var(--shadow-card);
+}

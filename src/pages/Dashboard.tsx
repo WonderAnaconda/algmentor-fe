@@ -23,9 +23,12 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { ClusterAnalysis } from '@/components/ClusterAnalysis';
 import WeekdayAnalysis from '@/components/WeekdayAnalysis';
+import SessionAssistantAnalysis from '@/components/SessionAssistantAnalysis';
 import Navbar from '@/components/Navbar';
 import { AnalysisDock } from '@/components/AnalysisDock';
 import { GradientBanner } from '@/components/GradientBanner';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 
 // Mock data for demonstration
 const mockMetrics = {
@@ -97,11 +100,19 @@ export default function Dashboard() {
   const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<any>(null);
+  const [isExportPDF, setIsExportPDF] = useState(false);
+
+  // Debug: Log when export state changes
+  useEffect(() => {
+    console.log('Export PDF state changed:', isExportPDF);
+  }, [isExportPDF]);
 
   // Create refs for PDF export and section navigation
   const analysisResultsRef = useRef<HTMLDivElement>(null);
   const clusterAnalysisRef = useRef<HTMLDivElement>(null);
   const weekdayAnalysisRef = useRef<HTMLDivElement>(null);
+  const sessionAssistantRef = useRef<HTMLDivElement>(null);
+  const allAnalysisRef = useRef<HTMLDivElement>(null);
   const [activeSection, setActiveSection] = useState<string>('analysis');
 
   // Scroll listener to update active section
@@ -114,7 +125,8 @@ export default function Dashboard() {
       const sections = [
         { id: 'analysis', ref: analysisResultsRef },
         { id: 'clusters', ref: clusterAnalysisRef },
-        { id: 'weekday', ref: weekdayAnalysisRef }
+        { id: 'weekday', ref: weekdayAnalysisRef },
+        { id: 'session-assistant', ref: sessionAssistantRef }
       ].filter(section => {
         // Only include sections that exist
         switch (section.id) {
@@ -124,6 +136,8 @@ export default function Dashboard() {
             return !!analysisResult.clusters;
           case 'weekday':
             return !!analysisResult.data?.by_weekday;
+          case 'session-assistant':
+            return !!analysisResult.data?.session_assistant;
           default:
             return false;
         }
@@ -225,8 +239,6 @@ export default function Dashboard() {
   }, []);
   // --- END AUTH CHECK ---
 
-
-
   if (!authChecked) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -311,20 +323,14 @@ export default function Dashboard() {
 
   const handleSectionSelect = (sectionId: string) => {
     setActiveSection(sectionId);
-    let targetRef: React.RefObject<HTMLDivElement> | null = null;
+    const refs: { [key: string]: React.RefObject<HTMLDivElement> } = {
+      'analysis': analysisResultsRef,
+      'clusters': clusterAnalysisRef,
+      'weekday': weekdayAnalysisRef,
+      'session-assistant': sessionAssistantRef
+    };
     
-    switch (sectionId) {
-      case 'analysis':
-        targetRef = analysisResultsRef;
-        break;
-      case 'clusters':
-        targetRef = clusterAnalysisRef;
-        break;
-      case 'weekday':
-        targetRef = weekdayAnalysisRef;
-        break;
-    }
-    
+    const targetRef = refs[sectionId];
     if (targetRef?.current) {
       targetRef.current.scrollIntoView({ 
         behavior: 'smooth', 
@@ -338,7 +344,7 @@ export default function Dashboard() {
       <Navbar />
 
       {/* Main Content */}
-      <main className="container mx-auto px-14 py-8">
+      <main className="container mx-auto px-16 py-8">
         <div className="space-y-8">
           {/* Welcome Section */}
           {!showResults && (
@@ -457,120 +463,163 @@ export default function Dashboard() {
 
           {showResults && analysisResult && analysisResult.recommendations && analysisResult.data && (
             <>
-              <GradientBanner className="py-8">
-                <div className="container mx-auto">
-                  <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
-                    <div className="text-center space-y-4">
-                      <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent leading-tight pb-1">
-                        Analysis Results
-                      </h2>
-                      <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                        Performance metrics and personalized recommendations based on your trading patterns.
-                      </p>
-                    </div>
-                  </Card>
-                </div>
-              </GradientBanner>
-              
-              <div ref={analysisResultsRef}>
-                <AnalysisResults
-                  analysis={analysisResult.recommendations}
-                  plotData={analysisResult.data}
-                  onReset={() => {
-                    setHasUploadedFile(false);
-                    setAnalysisError(null);
-                    setAnalysisData(null);
-                    setAnalysisResult(null);
-                    setShowResults(false);
-                    setUploadProgress(0);
-                  }}
-                />
-              </div>
-              
-              {/* Cluster Analysis Section */}
-              {analysisResult.clusters && (
-                <div ref={clusterAnalysisRef}>
-                  <GradientBanner className="py-8 mt-20">
-                    <div className="container mx-auto">
-                      <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
-                        <div className="text-center space-y-4">
-                          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent leading-tight pb-1">
-                            Cluster Analysis
-                          </h2>
-                          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                            AI-powered clustering of your trading patterns to identify distinct behavioral groups.
-                          </p>
-                        </div>
-                      </Card>
-                    </div>
-                  </GradientBanner>
-                  <ClusterAnalysis
-                    clusters={analysisResult.clusters.data}
-                    interpretations={analysisResult.clusters.interpretation}
-                  />
-                </div>
-              )}
-              
-              {/* Weekday Analysis Section */}
-              {analysisResult.data?.by_weekday && (
-                <div ref={weekdayAnalysisRef}>
-                  <GradientBanner className="py-8 mt-20">
-                    <div className="container mx-auto">
-                      <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
-                        <div className="text-center space-y-4">
-                          <h2 className="text-3xl md:text-4xl font-bold bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent leading-tight pb-1">
-                            Weekday Analysis
-                          </h2>
-                          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-                            Day-of-week performance patterns and optimal trading timing insights.
-                          </p>
-                        </div>
-                      </Card>
-                    </div>
-                  </GradientBanner>
-                  <WeekdayAnalysis byWeekday={analysisResult.data.by_weekday} />
-                </div>
-              )}
-              
-              {/* Export to PDF Button */}
-              <div className="flex justify-center mt-8">
+              {/* Top Controls Row */}
+              <div className="flex flex-col sm:flex-row justify-center items-center gap-4 mb-8">
+
+                {/* Upload Different File Button */}
+                <Button variant="outline" onClick={() => {
+                  setHasUploadedFile(false);
+                  setAnalysisError(null);
+                  setAnalysisData(null);
+                  setAnalysisResult(null);
+                  setShowResults(false);
+                  setUploadProgress(0);
+                }}>
+                  Upload a Different File
+                </Button>
+                {/* Export to PDF Button */}
                 <SmartPageBreakPDF
-                  elementRef={analysisResultsRef}
+                  elementRef={allAnalysisRef}
                   filename={`trading-analysis-${new Date().toISOString().split('T')[0]}.pdf`}
                   title="Export to PDF"
                   hasCharts={true}
+                  setIsExportPDF={setIsExportPDF}
                 />
               </div>
+              <div ref={allAnalysisRef}>
+                <GradientBanner className="py-8 mb-12" isExport={isExportPDF}>
+                  <div className="container mx-auto">
+                    <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
+                      <div className="text-center space-y-4">
+                        <h2 className={
+                          `text-3xl md:text-4xl font-bold leading-tight pb-1 ` +
+                          (isExportPDF
+                            ? 'text-primary'
+                            : 'bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent')
+                        }>
+                          Analysis Results
+                        </h2>
+                        <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                          Performance metrics and personalized recommendations based on your trading patterns.
+                        </p>
+                      </div>
+                    </Card>
+                  </div>
+                </GradientBanner>
               
-              {/* Action buttons */}
-              <div className="flex justify-center gap-4 mt-4">
-                {/* Debug: Download JSON button */}
-                {import.meta.env.VITE_DEBUG === 'true' && (
-                  <button
-                    className="bg-primary text-white px-4 py-2 rounded shadow hover:bg-primary/80 transition"
-                    onClick={() => {
-                      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(analysisResult, null, 2));
-                      const dlAnchor = document.createElement('a');
-                      dlAnchor.setAttribute("href", dataStr);
-                      dlAnchor.setAttribute("download", "analysis_result.json");
-                      document.body.appendChild(dlAnchor);
-                      dlAnchor.click();
-                      document.body.removeChild(dlAnchor);
+                <div ref={analysisResultsRef}>
+                  <AnalysisResults
+                    analysis={analysisResult.recommendations}
+                    plotData={analysisResult.data}
+                    onReset={() => {
+                      setHasUploadedFile(false);
+                      setAnalysisError(null);
+                      setAnalysisData(null);
+                      setAnalysisResult(null);
+                      setShowResults(false);
+                      setUploadProgress(0);
                     }}
-                  >
-                    Download Raw JSON
-                  </button>
+                    onExportPDF={() => {
+                      // This will be handled by the SmartPageBreakPDF component
+                    }}
+                    analysisResult={analysisResult}
+                    elementRef={allAnalysisRef}
+                  />
+                </div>
+                
+                {/* Cluster Analysis Section */}
+                {analysisResult.clusters && (
+                  <div ref={clusterAnalysisRef}>
+                    <GradientBanner className="py-8 mt-20" isExport={isExportPDF}>
+                      <div className="container mx-auto">
+                        <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
+                          <div className="text-center space-y-4">
+                            <h2 className={
+                              `text-3xl md:text-4xl font-bold leading-tight pb-1 ` +
+                              (isExportPDF
+                                ? 'text-primary'
+                                : 'bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent')
+                            }>
+                              Cluster Analysis
+                            </h2>
+                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                              This groups your past trades into patterns based on shared traits—like timing, size, or outcome—so you can quickly spot what’s working and what’s not. Use it to double down on your strongest setups and avoid repeating your weaker ones.
+                            </p>
+                          </div>
+                        </Card>
+                      </div>
+                    </GradientBanner>
+                    <ClusterAnalysis
+                      clusters={analysisResult.clusters.data}
+                      interpretations={analysisResult.clusters.interpretation}
+                      scatterData={analysisResult.clusters.scatter_data}
+                      method={analysisResult.clusters.method}
+                    />
+                  </div>
                 )}
+                
+                {/* Weekday Analysis Section */}
+                {analysisResult.data?.by_weekday && (
+                  <div ref={weekdayAnalysisRef}>
+                    <GradientBanner className="py-8 mt-20" isExport={isExportPDF}>
+                      <div className="container mx-auto">
+                        <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
+                          <div className="text-center space-y-4">
+                            <h2 className={
+                              `text-3xl md:text-4xl font-bold leading-tight pb-1 ` +
+                              (isExportPDF
+                                ? 'text-primary'
+                                : 'bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent')
+                            }>
+                              Weekday Analysis
+                            </h2>
+                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                              Find out on which days of the week you are performing best and worst.
+                            </p>
+                          </div>
+                        </Card>
+                      </div>
+                    </GradientBanner>
+                    <WeekdayAnalysis byWeekday={analysisResult.data.by_weekday} />
+                  </div>
+                )}
+                
+                {/* Session Assistant Analysis Section */}
+                {analysisResult.data?.session_assistant && (
+                  <div ref={sessionAssistantRef}>
+                    <GradientBanner className="py-8 mt-20" isExport={isExportPDF}>
+                      <div className="container mx-auto">
+                        <Card className="bg-card/90 shadow-glow/10 p-6 md:p-8 max-w-4xl mx-auto">
+                          <div className="text-center space-y-4">
+                            <h2 className={
+                              `text-3xl md:text-4xl font-bold leading-tight pb-1 ` +
+                              (isExportPDF
+                                ? 'text-primary'
+                                : 'bg-gradient-to-r from-primary via-primary-glow to-accent bg-clip-text text-transparent')
+                            }>
+                              Session Assistant
+                            </h2>
+                            <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+                              Get personalized insights and recommendations for your trading sessions.
+                            </p>
+                          </div>
+                        </Card>
+                      </div>
+                    </GradientBanner>
+                    <SessionAssistantAnalysis sessionAssistant={analysisResult.data.session_assistant} />
+                  </div>
+                )}
+                
+                {/* Analysis Dock */}
+                <AnalysisDock
+                  onSectionSelect={handleSectionSelect}
+                  activeSection={activeSection}
+                  hasAnalysisResults={!!analysisResult.recommendations}
+                  hasClusterResults={!!analysisResult.clusters}
+                  hasWeekdayResults={!!analysisResult.data?.by_weekday}
+                  hasSessionAssistantResults={!!analysisResult.data?.session_assistant}
+                />
               </div>
-              
-              {/* Analysis Dock */}
-              <AnalysisDock
-                onSectionSelect={handleSectionSelect}
-                activeSection={activeSection}
-                hasAnalysisResults={!!analysisResult.recommendations}
-                hasClusterResults={!!analysisResult.clusters}
-                hasWeekdayResults={!!analysisResult.data?.by_weekday}
-              />
             </>
           )}
 

@@ -21,12 +21,18 @@ export function FileUpload({
   uploadProgress = 0
 }: FileUploadProps) {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [isPreparing, setIsPreparing] = useState(false);
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
       setUploadedFile(file);
-      onFileUpload(file);
+      setIsPreparing(true);
+      // Use setTimeout to ensure immediate UI update before heavy processing
+      setTimeout(() => {
+        setIsPreparing(false);
+        onFileUpload(file);
+      }, 0);
     }
   }, [onFileUpload]);
 
@@ -43,6 +49,7 @@ export function FileUpload({
 
   const removeFile = () => {
     setUploadedFile(null);
+    setIsPreparing(false);
   };
 
   const formatFileSize = (bytes: number) => {
@@ -102,13 +109,16 @@ export function FileUpload({
               )}
             </div>
             
-            {isUploading && (
-              <div className="mt-4 space-y-2">
+            {(isPreparing || isUploading) && (
+              <div className="mt-4 space-y-2 immediate-loading">
                 <div className="flex justify-between text-sm">
-                  <span>Analyzing your trades...</span>
-                  <span>{uploadProgress}%</span>
+                  <span className="flex items-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary border-t-transparent"></div>
+                    {isPreparing ? 'Preparing file...' : 'Analyzing your trades...'}
+                  </span>
+                  <span>{isPreparing ? '0' : uploadProgress}%</span>
                 </div>
-                <Progress value={uploadProgress} className="h-2" />
+                <Progress value={isPreparing ? 0 : uploadProgress} className="h-2" />
               </div>
             )}
           </CardContent>

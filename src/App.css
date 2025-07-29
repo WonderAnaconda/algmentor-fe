@@ -40,3 +40,10 @@
 .read-the-docs {
   color: #888;
 }
+
+.shadow-green-pnl {
+  box-shadow: 0 8px 32px 0 rgba(52, 211, 153, 0.4), 0 4px 16px 0 rgba(52, 211, 153, 0.3), 0 0 0 2px rgba(52, 211, 153, 0.2) !important;
+}
+.shadow-red-pnl {
+  box-shadow: 0 8px 32px 0 rgba(248, 113, 113, 0.4), 0 4px 16px 0 rgba(248, 113, 113, 0.3), 0 0 0 2px rgba(248, 113, 113, 0.2) !important;
+}

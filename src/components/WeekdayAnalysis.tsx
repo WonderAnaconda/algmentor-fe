@@ -1,5 +1,6 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Slider } from '@/components/ui/slider';
 import { 
   Calendar, 
   BarChart3, 
@@ -17,9 +18,9 @@ import Plot from 'react-plotly.js';
 const weekdayLabels = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'];
 
 const seriesKeys = [
-  { key: 'holding_time', label: 'Holding Time', icon: Clock },
   { key: 'pnl', label: 'PnL', icon: TrendingUp },
-  { key: 'time_distance', label: 'Time Distance', icon: Target },
+  { key: 'holding_time', label: 'Holding Time (s)', icon: Clock },
+  { key: 'time_distance', label: 'Time Distance (s)', icon: Target },
   { key: 'volume', label: 'Volume', icon: Activity },
 ];
 
@@ -37,6 +38,7 @@ const palette = [
 
 const WeekdayAnalysis: React.FC<{ byWeekday: any }> = ({ byWeekday }) => {
   const barRef = useRef<HTMLCanvasElement>(null);
+  const [outlierPercentage, setOutlierPercentage] = useState([10]); // 1% default
 
   // Grouped Bar Chart for scalar metrics (Chart.js)
   useEffect(() => {
@@ -126,21 +128,31 @@ const WeekdayAnalysis: React.FC<{ byWeekday: any }> = ({ byWeekday }) => {
   // Prepare data for Plotly box plots
   const getBoxPlotData = (seriesKey: string, color: string) => {
     const data: any[] = [];
+    const percentage = outlierPercentage[0] / 100; // Convert percentage to decimal
+    
     weekdayLabels.forEach((weekday, idx) => {
       const values = byWeekday[idx]?.series?.[seriesKey] ?? [];
       if (values.length > 0) {
-        data.push({
-          type: 'box',
-          y: values,
-          x: weekday,
-          name: weekday,
-          boxpoints: false,
-          line: { color: color, width: 1.5 },
-          fillcolor: color + '30',
-          opacity: 0.8,
-          whiskerwidth: 0.8,
-          boxmean: true,
-        });
+        // Filter out the most extreme values based on user-selected percentage
+        const sortedValues = [...values].sort((a, b) => a - b);
+        const cutoffIndex = Math.max(1, Math.floor(values.length * percentage)); // At least 1, or user-selected % from each end
+        const filteredValues = sortedValues.slice(cutoffIndex, -cutoffIndex);
+        
+        // Only add if we still have data after filtering
+        if (filteredValues.length > 0) {
+          data.push({
+            type: 'box',
+            y: filteredValues,
+            x: weekday,
+            name: weekday,
+            boxpoints: false,
+            line: { color: color, width: 1.5 },
+            fillcolor: color + '30',
+            opacity: 0.8,
+            whiskerwidth: 0.8,
+            boxmean: true,
+          });
+        }
       }
     });
     return data;
@@ -164,20 +176,44 @@ const WeekdayAnalysis: React.FC<{ byWeekday: any }> = ({ byWeekday }) => {
         </CardContent>
       </Card>
       
-      {/* Distribution Section */}
-      <Card className="bg-gradient-card shadow-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <PieChart className="h-5 w-5 text-primary" />
-            Distribution Analysis by Weekday
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid lg:grid-cols-2 gap-8">
+             {/* Distribution Section */}
+       <Card className="bg-gradient-card shadow-card">
+         <CardHeader>
+           <CardTitle className="flex items-center gap-2">
+             <PieChart className="h-5 w-5 text-primary" />
+             Distribution Analysis by Weekday
+           </CardTitle>
+         </CardHeader>
+         <CardContent>
+           {/* Outlier Filter Control */}
+           <div className="mb-6 p-4 bg-muted/20 rounded-lg border border-border/30">
+             <div className="flex items-center justify-between mb-2">
+               <label className="text-sm font-medium text-muted-foreground">
+                 Outlier Filter: {outlierPercentage[0]}%
+               </label>
+               <span className="text-xs text-muted-foreground">
+                 Remove extreme values from each end
+               </span>
+             </div>
+             <Slider
+               value={outlierPercentage}
+               onValueChange={setOutlierPercentage}
+               max={20}
+               min={0}
+               step={0.5}
+               className="w-full"
+             />
+             <div className="flex justify-between text-xs text-muted-foreground mt-1">
+               <span>0% (No filtering)</span>
+               <span>20% (Aggressive filtering)</span>
+             </div>
+           </div>
+           
+                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             {seriesKeys.map((s, i) => {
               const IconComponent = s.icon;
               return (
-                <Card key={s.key} className="bg-muted/10 border border-muted/20">
+                <Card key={s.key} className="bg-gradient-card shadow-card border border-border/50">
                   <CardHeader className="pb-4">
                     <CardTitle className="flex items-center gap-2 text-lg">
                       <IconComponent className="h-5 w-5 text-primary" />
